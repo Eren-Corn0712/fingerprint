@@ -12,6 +12,7 @@ class Test(object):
         base_matcher = BaseMatcher()
         self.console.info("Base Matcher is OK.")
 
+    def test_base_dataset(self):
     def __call__(self, *args, **kwargs):
         self.test_base_matcher()
 
