@@ -1,6 +1,7 @@
-from engine.matcher import BaseMatcher
-from data.base import BaseDataset
-from utils import LOGGER
+from matcher.engine.matcher import BaseMatcher
+from matcher.data.base import BaseDataset
+from matcher.data.dataset import FingerPrintDataset
+from matcher.utils import LOGGER
 
 
 class Test(object):
@@ -18,9 +19,15 @@ class Test(object):
         base_dataset = BaseDataset("FingerPrintDataset")
         self.console.info("Test Base Dataset is OK")
 
+    def test_finger_print_dataset(self):
+        self.console.info("Test Finger Print Dataset")
+        base_dataset = FingerPrintDataset("FingerPrintDataset",)
+        self.console.info("Test Finger Print Dataset is OK")
+
     def __call__(self, *args, **kwargs):
         self.test_base_matcher()
         self.test_base_dataset()
+        self.test_finger_print_dataset()
 
 
 if __name__ == '__main__':
