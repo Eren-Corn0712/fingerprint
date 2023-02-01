@@ -1,5 +1,3 @@
-es (62 sloc)  2.67 KB
-
 import contextlib
 import re
 import shutil
@@ -11,7 +9,7 @@ from typing import Dict, List, Union
 
 from utils import LOGGER, colorstr, yaml_load, DEFAULT_CFG, IterableSimpleNamespace
 
-CLI_HELP_MSG = "Pl"
+CLI_HELP_MSG = "Please Set Config file for Matching"
 
 
 def cfg2dict(cfg):

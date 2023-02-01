@@ -8,7 +8,7 @@ from pathlib import Path
 
 from utils import (DEFAULT_CFG, LOGGER, RANK, TQDM_BAR_FORMAT, colorstr, emojis,
                    yaml_save)
-from utils.file import increment_path
+from utils.files import increment_path
 from cfg import get_cfg
 
 
