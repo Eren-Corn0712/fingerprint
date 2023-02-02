@@ -21,12 +21,14 @@ class Test(object):
 
     def test_finger_print_dataset(self):
         self.console.info("Test Finger Print Dataset")
-        base_dataset = FingerPrintDataset("FingerPrintDataset",)
+        finger_print_dataset = FingerPrintDataset("FingerPrintDataset",)
+        for i in finger_print_dataset:
+            print(i)
         self.console.info("Test Finger Print Dataset is OK")
 
     def __call__(self, *args, **kwargs):
         self.test_base_matcher()
-        self.test_base_dataset()
+        # self.test_base_dataset()
         self.test_finger_print_dataset()
 
 

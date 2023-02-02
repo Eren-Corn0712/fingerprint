@@ -17,7 +17,9 @@ class BaseDataset(Dataset):
     def __init__(self,
                  img_path: str = None,
                  label_path: str = None,
-                 prefix: str = ""):
+                 prefix: str = "",
+                 cache: bool = False
+                 ):
         super().__init__()
         self.img_path = img_path
         self.label_path = label_path
@@ -25,6 +27,13 @@ class BaseDataset(Dataset):
 
         self.im_files = self.get_img_files(self.img_path)
         self.labels = self.get_labels()
+
+        self.ni = len(self.labels)
+        # cache stuff
+        self.ims = [None] * self.ni
+        self.npy_files = [Path(f).with_suffix(".npy") for f in self.im_files]
+        if cache:
+            self.cache_images(cache)
 
     def get_img_files(self, img_path):
         """Read image files."""
@@ -63,10 +72,33 @@ class BaseDataset(Dataset):
                 bbox_format="xyxy",  # or xywh, ltwh
             )
         """
-        pass
+        raise NotImplementedError
 
     def __len__(self):
         return len(self.labels)
 
     def __getitem__(self, index):
-        raise NotImplementedError
+        return self.get_label_info(index)
+
+    def get_label_info(self, index):
+        label = self.labels[index].copy()
+        label.pop("shape", None)  # shape is for rect, remove it
+        label["img"], label["ori_shape"] = self.load_image(index)
+
+    def load_image(self, i):
+        im, f, fn = self.ims[i], self.im_files[i], self.npy_files[i]
+        if im is None:  # not cached in RAM
+            if fn.exists():  # load npy
+                im = np.load(fn)
+            else:  # read image
+                im = cv2.imread(f)  # BGR
+                if im is None:
+                    raise FileNotFoundError(f"Image Not Found {f}")
+            h0, w0 = im.shape[:2]  # orig hw
+
+            return im, (h0, w0)
+        return self.ims[i], self.im_hw0[i]
+
+    def update_labels_info(self, label):
+        """custom your label format here"""
+        return label
