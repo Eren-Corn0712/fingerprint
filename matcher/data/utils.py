@@ -76,7 +76,6 @@ def verify_image_label(args):
             nf = 1  # labels found
             with open(lb_file) as f:
                 lb = [x.split() for x in f.read().strip().splitlines() if len(x)]
-                lb = np.array(lb, dtype=np.chararray)
             nl = len(lb)
 
         return im_file, lb, shape, nm, nf, ne, nc, msg

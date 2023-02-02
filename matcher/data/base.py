@@ -33,6 +33,7 @@ class BaseDataset(Dataset):
         self.ims = [None] * self.ni
         self.npy_files = [Path(f).with_suffix(".npy") for f in self.im_files]
         if cache:
+            # TODO: Complete implementation
             self.cache_images(cache)
 
     def get_img_files(self, img_path):
@@ -84,6 +85,8 @@ class BaseDataset(Dataset):
         label = self.labels[index].copy()
         label.pop("shape", None)  # shape is for rect, remove it
         label["img"], label["ori_shape"] = self.load_image(index)
+        label = self.update_labels_info(label)
+        return label
 
     def load_image(self, i):
         im, f, fn = self.ims[i], self.im_files[i], self.npy_files[i]

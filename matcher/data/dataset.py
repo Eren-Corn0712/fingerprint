@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Any, Tuple, Dict, List
 
 import numpy as np
 
@@ -25,6 +25,7 @@ class FingerPrintDataset(BaseDataset):
     ):
         super().__init__(img_path, label_path)
         self.label_files = None
+        self.user_finger: Dict[List] = {}
 
     def cache_labels(self, path=Path("./labels.cache")):
         # Cache dataset labels, check images and read shapes
@@ -43,13 +44,14 @@ class FingerPrintDataset(BaseDataset):
                 nf += nf_f
                 ne += ne_f
                 nc += nc_f
+                user, finger, enrl_verf = lb[0][0], lb[0][1], lb[0][2]
                 if im_file:
                     x["labels"].append(dict(
                         im_file=im_file,
                         shape=shape,
-                        user=lb[:, 0],
-                        finger=lb[:, 1],
-                        enrl_verf=lb[:, 2],
+                        user=user,
+                        finger=finger,
+                        enrl_verf=enrl_verf,
                     ))
                 if msg:
                     msgs.append(msg)
@@ -78,7 +80,7 @@ class FingerPrintDataset(BaseDataset):
         self.label_files = img2label_paths(self.im_files)
         cache_path = Path(self.label_files[0]).parent.with_suffix(".cache")
         try:
-            cache: Union[list, str, tuple, list, float]
+            cache: Dict[str, Union[Union[list, Tuple[int, int, int, int, int], float], Any]]
             cache, exists = np.load(str(cache_path), allow_pickle=True).item(), True  # load dict
             assert cache["version"] == self.cache_version  # matches current version
             assert cache["hash"] == get_hash(self.label_files + self.im_files)  # identical hash

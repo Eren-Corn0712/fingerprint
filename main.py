@@ -23,7 +23,7 @@ class Test(object):
         self.console.info("Test Finger Print Dataset")
         finger_print_dataset = FingerPrintDataset("FingerPrintDataset",)
         for i in finger_print_dataset:
-            print(i)
+            pass
         self.console.info("Test Finger Print Dataset is OK")
 
     def __call__(self, *args, **kwargs):
