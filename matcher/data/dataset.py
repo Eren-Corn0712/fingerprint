@@ -13,6 +13,7 @@ from .base import BaseDataset
 from pathlib import Path
 from .utils import HELP_URL, LOCAL_RANK, img2label_paths, get_hash, verify_image_label
 from matcher.utils import NUM_THREADS, TQDM_BAR_FORMAT, is_dir_writeable, LOGGER
+from matcher.data.dataset_wrappers import WrappersDataset
 
 
 class FingerPrintDataset(BaseDataset):
@@ -26,7 +27,6 @@ class FingerPrintDataset(BaseDataset):
         super().__init__(img_path, label_path)
         self.label_files = None
         self.user_finger_info: Dict[List] = self.get_user_finger_list()
-        print(self.user_finger_info)
 
     def cache_labels(self, path=Path("./labels.cache")):
         # Cache dataset labels, check images and read shapes
@@ -52,7 +52,7 @@ class FingerPrintDataset(BaseDataset):
                         shape=shape,
                         user=user,
                         finger=finger,
-                        enrl_verf=enrl_verf,
+                        state=enrl_verf,
                     ))
                 if msg:
                     msgs.append(msg)
@@ -112,3 +112,21 @@ class FingerPrintDataset(BaseDataset):
             if l['finger'] not in d[l['user']]:
                 d[l['user']].append(l['finger'])
         return d
+
+    def select_enroll_verify_fake(
+            self,
+            user_key: str,
+            finger_key: str
+    ) -> Tuple[WrappersDataset, WrappersDataset, WrappersDataset]:
+        enroll_data = []
+        verify_data = []
+        fake_data = []
+        for labels in self.labels:
+            if labels['user'] == user_key and labels['finger'] == finger_key and labels['state'] == 'enroll':
+                enroll_data.append(labels)
+            elif labels['user'] == user_key and labels['finger'] == finger_key and labels['state'] == 'verify':
+                verify_data.append(labels)
+            else:
+                fake_data.append(labels)
+
+        return WrappersDataset(enroll_data), WrappersDataset(verify_data), WrappersDataset(fake_data)

@@ -37,7 +37,6 @@ class BaseMatcher(object):
 
         self.data = self.args.data
         self.dataset = FingerPrintDataset(self.data)
-        pass
 
     def log(self, text, rank=-1):
         """
@@ -48,3 +47,6 @@ class BaseMatcher(object):
         """
         if rank in {-1, 0}:
             self.console.info(text)
+
+    def build_matching_dataset(self):
+        raise NotImplementedError
