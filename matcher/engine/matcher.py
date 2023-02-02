@@ -38,6 +38,7 @@ class BaseMatcher(object):
         self.data = self.args.data
         self.dataset = FingerPrintDataset(self.data)
         pass
+
     def log(self, text, rank=-1):
         """
         Logs the given text to given ranks process if provided, otherwise logs to all ranks.

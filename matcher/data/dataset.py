@@ -25,7 +25,8 @@ class FingerPrintDataset(BaseDataset):
     ):
         super().__init__(img_path, label_path)
         self.label_files = None
-        self.user_finger: Dict[List] = {}
+        self.user_finger_info: Dict[List] = self.get_user_finger_list()
+        print(self.user_finger_info)
 
     def cache_labels(self, path=Path("./labels.cache")):
         # Cache dataset labels, check images and read shapes
@@ -102,3 +103,12 @@ class FingerPrintDataset(BaseDataset):
         labels = cache["labels"]
 
         return labels
+
+    def get_user_finger_list(self):
+        d = {}
+        for l in self.labels:
+            if l['user'] not in d:
+                d[l['user']] = []
+            if l['finger'] not in d[l['user']]:
+                d[l['user']].append(l['finger'])
+        return d
