@@ -28,6 +28,9 @@ class FingerPrintDataset(BaseDataset):
         self.label_files = None
         self.user_finger_info: Dict[List] = self.get_user_finger_list()
 
+    def get_user_finger(self):
+        return self.user_finger_info
+
     def cache_labels(self, path=Path("./labels.cache")):
         # Cache dataset labels, check images and read shapes
         if path.exists():

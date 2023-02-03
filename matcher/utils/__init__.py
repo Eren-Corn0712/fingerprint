@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import uuid
 from pathlib import Path
 from types import SimpleNamespace
@@ -196,6 +197,19 @@ class TryExcept(contextlib.ContextDecorator):
         if self.verbose and value:
             print(emojis(f"{self.msg}{': ' if self.msg else ''}{value}"))
         return True
+
+
+class Profile(contextlib.ContextDecorator):
+    def __init__(self, t=0.0):
+        self.t = t
+
+    def __enter__(self):
+        self.start = time.time()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.dt = time.time() - self.start
+        self.t += self.dt
 
 
 def threaded(func):

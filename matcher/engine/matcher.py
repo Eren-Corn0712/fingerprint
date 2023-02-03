@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 from matcher.utils import (DEFAULT_CFG, LOGGER, RANK, TQDM_BAR_FORMAT, colorstr, emojis,
-                           yaml_save)
+                           yaml_save, Profile)
 from matcher.utils.check import print_args
 from matcher.utils.files import increment_path
 from matcher.cfg import get_cfg
@@ -18,7 +18,7 @@ class BaseMatcher(object):
     def __init__(self, cfg=DEFAULT_CFG, overrides=None):
         self.args = get_cfg(cfg, overrides)
         self.console = LOGGER
-
+        self.profile = Profile
         # Dirs
         project = self.args.project
         name = self.args.name or f"{self.args.mode}"
@@ -47,6 +47,3 @@ class BaseMatcher(object):
         """
         if rank in {-1, 0}:
             self.console.info(text)
-
-    def build_matching_dataset(self):
-        raise NotImplementedError
