@@ -5,13 +5,14 @@ from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, Any
 
-from matcher.utils import (DEFAULT_CFG, LOGGER, RANK, TQDM_BAR_FORMAT, colorstr, emojis,
-                           yaml_save, Profile)
-from matcher.utils.check import print_args
-from matcher.utils.files import increment_path
-from matcher.cfg import get_cfg
-from matcher.data.dataset import FingerPrintDataset
+from matcher_tool.utils import (DEFAULT_CFG, LOGGER, RANK, TQDM_BAR_FORMAT, colorstr, emojis,
+                                yaml_save, Profile)
+from matcher_tool.utils.check import print_args
+from matcher_tool.utils.files import increment_path
+from matcher_tool.cfg import get_cfg
+from matcher_tool.data.dataset import FingerPrintDataset
 
 
 class BaseMatcher(object):
@@ -47,3 +48,10 @@ class BaseMatcher(object):
         """
         if rank in {-1, 0}:
             self.console.info(text)
+
+    def preprocess_image(self, label: Dict[Any]):
+        """
+        Allows custom preprocessing model inputs and ground truths depending on task type.
+        """
+
+        return label

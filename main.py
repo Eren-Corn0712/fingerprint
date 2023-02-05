@@ -1,7 +1,7 @@
-from matcher.engine.matcher import BaseMatcher
-from matcher.data.base import BaseDataset
-from matcher.data.dataset import FingerPrintDataset
-from matcher.utils import LOGGER
+from matcher_tool.engine.matcher import BaseMatcher
+from matcher_tool.data.base import BaseDataset
+from matcher_tool.data.dataset import FingerPrintDataset
+from matcher_tool.utils import LOGGER
 
 
 class Test(object):

@@ -7,7 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Dict, List, Union
 
-from matcher.utils import LOGGER, colorstr, yaml_load, DEFAULT_CFG, IterableSimpleNamespace
+from matcher_tool.utils import LOGGER, colorstr, yaml_load, DEFAULT_CFG, IterableSimpleNamespace
 
 CLI_HELP_MSG = "Please Set Config file for Matching"
 

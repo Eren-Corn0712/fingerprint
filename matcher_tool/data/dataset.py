@@ -12,8 +12,8 @@ from tqdm import tqdm
 from .base import BaseDataset
 from pathlib import Path
 from .utils import HELP_URL, LOCAL_RANK, img2label_paths, get_hash, verify_image_label
-from matcher.utils import NUM_THREADS, TQDM_BAR_FORMAT, is_dir_writeable, LOGGER
-from matcher.data.dataset_wrappers import WrappersDataset
+from matcher_tool.utils import NUM_THREADS, TQDM_BAR_FORMAT, is_dir_writeable, LOGGER
+from matcher_tool.data.dataset_wrappers import WrappersDataset
 
 
 class FingerPrintDataset(BaseDataset):
