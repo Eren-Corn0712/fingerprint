@@ -5,7 +5,7 @@ from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Union
 
 from matcher_tool.utils import (DEFAULT_CFG, LOGGER, RANK, TQDM_BAR_FORMAT, colorstr, emojis,
                                 yaml_save, Profile)
@@ -49,9 +49,9 @@ class BaseMatcher(object):
         if rank in {-1, 0}:
             self.console.info(text)
 
-    def preprocess_image(self, label: Dict[Any]):
+    def preprocess_image(self, labels):
         """
         Allows custom preprocessing model inputs and ground truths depending on task type.
         """
 
-        return label
+        return labels
