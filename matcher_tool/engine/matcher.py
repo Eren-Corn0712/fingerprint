@@ -37,7 +37,8 @@ class BaseMatcher(object):
             print_args(vars(self.args))
 
         self.data = self.args.data
-        self.dataset = FingerPrintDataset(self.data)
+        self.dataset = self.get_dataset()
+        self.csv = self.save_dir / 'results.csv'
 
     def log(self, text, rank=-1):
         """
@@ -49,9 +50,17 @@ class BaseMatcher(object):
         if rank in {-1, 0}:
             self.console.info(text)
 
+    def warning(self, text, rank=-1):
+        if rank in {-1, 0}:
+            self.console.warning(text)
+
     def preprocess_image(self, labels):
         """
         Allows custom preprocessing model inputs and ground truths depending on task type.
         """
 
         return labels
+
+    def get_dataset(self):
+        # TODO: We will support different type dataset.
+        return FingerPrintDataset(self.data)

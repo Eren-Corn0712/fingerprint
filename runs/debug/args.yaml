@@ -1,4 +1,0 @@
-data: FingerPrintDataset
-project: runs
-name: debug
-save_dir: runs\debug

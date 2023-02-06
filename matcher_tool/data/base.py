@@ -33,8 +33,9 @@ class BaseDataset(Dataset):
         self.ims = [None] * self.ni
         self.npy_files = [Path(f).with_suffix(".npy") for f in self.im_files]
         if cache:
-            # TODO: Complete implementation
-            self.cache_images(cache)
+            pass
+            # TODO: we may be implemented
+            # self.cache_images(cache)
 
     def get_img_files(self, img_path):
         """Read image files."""
@@ -105,3 +106,6 @@ class BaseDataset(Dataset):
     def update_labels_info(self, label):
         """custom your label format here"""
         return label
+
+    def plot_metric(self):
+        pass
