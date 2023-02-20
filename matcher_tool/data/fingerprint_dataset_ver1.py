@@ -14,8 +14,7 @@ from torchvision.utils import make_grid
 from matcher_tool.data.base import BaseDataset
 from matcher_tool.data.utils import find_dir, register_verify, register_enroll, nested_dict_to_list
 from matcher_tool.data.augment import FingerPrintDataAug_1
-
-
+from matcher_tool.data.dataset_wrappers import WrappersDataset
 
 def register_finger_print_data(root, fmt: str = 'png') -> Tuple[Dict, str]:
     users = find_dir(root)
@@ -27,7 +26,7 @@ def register_finger_print_data(root, fmt: str = 'png') -> Tuple[Dict, str]:
     total_enroll_n, total_verify_n, total_finger_n = 0, 0, 0
     for user in users:
         d.setdefault(user.name, {})
-        fingers = find_dir(user)
+        fingers = find_dir(str(user))
         enroll_n, verify_n = 0, 0
         for finger in fingers:
             d[user.name].setdefault(finger.name, {})
@@ -51,6 +50,7 @@ def register_finger_print_data(root, fmt: str = 'png') -> Tuple[Dict, str]:
 class FingerPrintDataset(BaseDataset):
     def __init__(self, img_path: str, label_path: str = None, transform=None):
         super().__init__(img_path, label_path)
+        self.user_finger = None
         self.im_files = self.get_img_files(img_path)
         self.txt_files = self.get_txt_files(img_path)
         self.labels = self.get_labels()
@@ -74,12 +74,14 @@ class FingerPrintDataset(BaseDataset):
 
     def get_img_files(self, img_path):
         img, log = register_finger_print_data(img_path)
-        print(log)
+        new_dict = {}
+        for key1, inner_dict in img.items():
+            new_dict[key1] = list(inner_dict.keys())
+        self.user_finger = copy.deepcopy(new_dict)
         return nested_dict_to_list(img)
 
     def get_txt_files(self, txt_path):
         txt, log = register_finger_print_data(txt_path, 'txt')
-        print(log)
         return nested_dict_to_list(txt)
 
     def get_label_info(self, index):
@@ -93,12 +95,6 @@ class FingerPrintDataset(BaseDataset):
             label['overlap'] = self.read_txt(txt_file)
         else:
             label['overlap'] = {}
-        # print(txt_file)
-        # if len(txt_file) == 1:
-
-        # elif len(txt_file) == 2:
-        #     raise ValueError("")
-
         return label
 
     def read_txt(self, txt_file):
@@ -134,8 +130,11 @@ class FingerPrintDataset(BaseDataset):
 
         if self.transform:
             label = self.transform(label)
-        label.pop('img1'), label.pop('img2'), label.pop('overlap')
+        label.pop('img1', None), label.pop('img2', None), label.pop('overlap', None)
         return label
+
+    def select_dataset(self):
+        pass
 
     def __len__(self):
         return len(self.labels)

@@ -191,3 +191,12 @@ class FingerPrintDataAug_1(object):
                     self.loc_trans[i](labels['img2']))
         labels['multi'] = crops
         return labels
+
+
+class InferenceFingerPrintAug(object):
+    def __init__(self, size=(128, 32)):
+        self.size = size
+
+    def __call__(self, labels):
+        labels['img1'] = crop_to_size(labels['img1'], 128, 32)
+        return labels
