@@ -198,5 +198,6 @@ class InferenceFingerPrintAug(object):
         self.size = size
 
     def __call__(self, labels):
-        labels['img1'] = crop_to_size(labels['img1'], 128, 32)
+        labels['img'] = crop_to_size(labels['img1'], 128, 32)
+        labels['img'] = transforms.ToTensor()(labels['img'])
         return labels
