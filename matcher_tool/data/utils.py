@@ -84,3 +84,99 @@ def verify_image_label(args):
         nc = 1
         msg = f"{prefix}WARNING ⚠️ {im_file}: ignoring corrupt image/label: {e}"
         return [None, None, None, nm, nf, ne, nc, msg]
+
+
+def find_file(root: str, fmt: str = 'png', recursive: bool = False) -> List[Path]:
+    if recursive:
+        p = Path(root).rglob(f'*.{fmt}')
+    else:
+        p = Path(root).glob(f'*.{fmt}')
+
+    return sorted(list(p))
+
+
+def register_enroll(path: Path, fmt: str = 'png'):
+    enroll_paths = find_file(str(path / 'enroll'), fmt, recursive=True)
+    return enroll_paths
+
+
+def register_verify(path: Path, fmt: str = 'png'):
+    verify_paths = find_file(str(path / 'verify'), fmt, recursive=True)
+    return verify_paths
+
+
+def find_dir(root: str) -> List[Path]:
+    p_list = []
+    for p in Path(root).glob('*'):
+        if p.is_dir():
+            p_list.append(p)
+
+    return p_list
+
+
+def register_user(root: str) -> List:
+    users = find_dir(root)
+    if len(users) == 0:
+        raise ValueError("We did not find users")
+    return users
+
+
+def register_finger(users, fmt: str = 'png'):
+    d = {}
+    log = ('\n' + '%12s' * 4) % ('USER', 'Finger-num', 'Enroll', 'Verify')
+    total_enroll_n, total_verify_n, total_finger_n = 0, 0, 0
+    for user in users:
+        d.setdefault(user.name, {})
+        fingers = find_dir(user)
+        enroll_n, verify_n = 0, 0
+        for finger in fingers:
+            d[user.name].setdefault(finger.name, {})
+            enroll_paths = register_enroll(finger, fmt)
+            verify_paths = register_verify(finger, fmt)
+            d[user.name][finger.name]['enroll'] = enroll_paths
+            d[user.name][finger.name]['verify'] = verify_paths
+            enroll_n += len(enroll_paths)
+            verify_n += len(verify_paths)
+        total_enroll_n += enroll_n
+        total_verify_n += verify_n
+        total_finger_n += len(fingers)
+
+        log += ('\n' + '%12s' * 4) % (user.name, len(fingers), enroll_n, verify_n)
+    # log output
+    log += ('\n' + '%12s' * 4) % ('Tot-User', 'Tot-Finger', 'Tot-Enroll', 'Tot-Verify')
+    log += ('\n' + '%12s' * 4) % (len(list(d.keys())), total_finger_n, total_enroll_n, total_verify_n)
+    print(log)
+
+    return d, log
+
+
+def recursive_items(dictionary):
+    for key, value in dictionary.items():
+        if type(value) is dict:
+            yield from recursive_items(value)
+        else:
+            yield key, value
+
+
+def count_keys(dictionary):
+    count = 0
+    for key, value in dictionary.items():
+        if type(value) is dict:
+            count += count_keys(value)
+        elif type(value) is list:
+            count += len(value)
+        else:
+            count += 1
+    return count
+
+
+def nested_dict_to_list(d):
+    result = []
+    for key, value in d.items():
+        if isinstance(value, dict):
+            result.extend(nested_dict_to_list(value))
+        elif type(value) is list:
+            result.extend(value)
+        else:
+            result.append((key, value))
+    return result
