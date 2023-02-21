@@ -1,0 +1,15 @@
+data: " "
+train_data: "/home/corn/PycharmProjects/fingerprint/train"
+test_data: "/home/corn/PycharmProjects/fingerprint/test"
+
+project: runs  # project name
+name: resnet18_wo_maxpool_ch2_16384_aug1  # experiment name
+
+batch_size: 32
+num_workers: 8
+model: "resnet18_wo_maxpool_ch2"
+weights: "esvit/runs/resnet18_wo_maxpool_ch2_16384_aug1/lowest.pth"
+extract_layers: [ 'layer1', 'layer2', 'layer3', 'layer4' ]
+device: 1
+distance: "cos"
+exist_ok: True
