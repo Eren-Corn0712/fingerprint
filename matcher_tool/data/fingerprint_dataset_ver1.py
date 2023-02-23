@@ -13,7 +13,7 @@ from matplotlib import pyplot as plt
 from torchvision.utils import make_grid
 from matcher_tool.data.base import BaseDataset
 from matcher_tool.data.utils import find_dir, register_verify, register_enroll, nested_dict_to_list
-from matcher_tool.data.augment import FingerPrintDataAug_1, FingerPrintDataAug_2
+from matcher_tool.data.augment import FingerPrintDataAug_1, FingerPrintDataAug_2, PairFingerPrintAug
 
 
 def register_finger_print_data(root, fmt: str = 'png') -> Tuple[Dict, str]:
@@ -137,6 +137,38 @@ class FingerPrintDataset(BaseDataset):
         return len(self.labels)
 
 
+class PairImageFingerPrintDataset(FingerPrintDataset):
+
+    @staticmethod
+    def select_fake(x, user, finger, enrl_verf):
+        return x['user'] != user and x['finger'] != finger and x['enrl_verf'] != enrl_verf
+
+    def __getitem__(self, index):
+        label = self.get_label_info(index)
+        label['img1'] = self.load_image(str(label['im_file']))
+        if label['overlap'] == {}:
+            filtered_labels = list(
+                filter(
+                    lambda x: self.select_fake(x, label['user'], label['finger'], label['enrl_verf']), self.labels))
+            filtered_label = random.choice(filtered_labels)
+            label['img2'] = self.load_image(str(filtered_label['im_file']))
+            label['match'] = 0
+        else:
+            paths_scores = zip(label['overlap']['path'], label['overlap']['score'])
+            selected_path = [Path(self.img_path) / p for p, s in paths_scores if float(s) != 0.0]
+            if selected_path:
+                label['img2'] = self.load_image(str(random.choice(selected_path)))
+                label['match'] = 1
+            else:
+                label['img2'] = copy.deepcopy(label['img1'])
+                label['match'] = 0
+
+        if self.transform:
+            label = self.transform(label)
+        label.pop('overlap', None)
+        return label
+
+
 def show(imgs):
     if not isinstance(imgs, list):
         imgs = [imgs]
@@ -148,25 +180,44 @@ def show(imgs):
         axs[0, i].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
 
 
+class Test_Dataset(object):
+    def __init__(self):
+        self.datasets = FingerPrintDataset("/home/corn/PycharmProjects/fingerprint/train")
+        self.pair_datasets = PairImageFingerPrintDataset("/home/corn/PycharmProjects/fingerprint/train")
+
+    def test_transform1(self):
+        transform1 = FingerPrintDataAug_1(global_crops_scale=(1.0, 1.0),
+                                          local_crops_number=(16,),
+                                          local_crops_scale=(0.15, 0.50),
+                                          local_crops_size=(32,))
+        self.datasets.transform = transform1
+        self.show_mutil_crop_arg(DataLoader(self.datasets, batch_size=4))
+
+    def test_transform2(self):
+        transform2 = FingerPrintDataAug_2(global_crops_scale=(0.5, 1.0),
+                                          local_crops_number=(16,),
+                                          local_crops_scale=(0.15, 0.50),
+                                          local_crops_size=(32,))
+        self.datasets.transform = transform2
+        self.show_mutil_crop_arg(DataLoader(self.datasets, batch_size=4))
+
+    def show_mutil_crop_arg(self, data_loader):
+        index = 0
+        for label in data_loader:
+            images = label['multi']
+            global_view = [view[index] for view in images[:2]]
+            local_view = [view[index] for view in images[2:]]
+            show(make_grid(global_view))
+            show(make_grid(local_view))
+            plt.show()
+
+    def test_pair_dataset(self):
+        self.pair_datasets.transform = PairFingerPrintAug()
+        data_loader = DataLoader(self.pair_datasets, batch_size=128)
+        for i, label in enumerate(data_loader):
+            print(f"Successfully load {i}")
+
+
 if __name__ == '__main__':
-    transform1 = FingerPrintDataAug_1(global_crops_scale=(1.0, 1.0),
-                                      local_crops_number=(16,),
-                                      local_crops_scale=(0.15, 0.50),
-                                      local_crops_size=(32,))
-
-    transform2 = FingerPrintDataAug_2(global_crops_scale=(0.5, 1.0),
-                                      local_crops_number=(16,),
-                                      local_crops_scale=(0.15, 0.50),
-                                      local_crops_size=(32,))
-    fpd = FingerPrintDataset("/home/corn/PycharmProjects/fingerprint/train",
-                             transform=transform2)
-    fpd_loader = DataLoader(fpd, batch_size=4)
-
-    index = 0
-    for label in fpd_loader:
-        images = label['multi']
-        global_view = [view[index] for view in images[:2]]
-        local_view = [view[index] for view in images[2:]]
-        show(make_grid(global_view))
-        show(make_grid(local_view))
-        plt.show()
+    test_class = Test_Dataset()
+    test_class.test_pair_dataset()

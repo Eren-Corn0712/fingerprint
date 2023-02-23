@@ -315,7 +315,10 @@ class FingerPrintDataAug_2(object):
         ], p=[0.5, 0.5])
         # first global crop
         self.glo_trans = transforms.Compose([random_select,
-                                             RandomGaussianBlur(0.5), normalize])
+                                             transforms.RandomHorizontalFlip(0.5),
+                                             transforms.RandomVerticalFlip(0.5),
+                                             RandomGaussianBlur(0.5),
+                                             normalize])
         # transformation for the local small crops
 
         self.loc_trans = []
@@ -348,4 +351,31 @@ class InferenceFingerPrintAug(object):
     def __call__(self, labels):
         labels['img'] = crop_to_size(labels['img1'], 128, 32)
         labels['img'] = transforms.ToTensor()(labels['img'])
+        return labels
+
+
+class PairFingerPrintAug(object):
+    def __init__(self, size: Tuple[int, int] = (128, 32), is_train: bool = True):
+        self.size = size
+        self.is_train = True
+        self.train_transform = transforms.Compose([
+            transforms.RandomVerticalFlip(0.5),
+            transforms.RandomHorizontalFlip(0.5),
+            transforms.ToTensor()
+        ])
+        self.test_transform = transforms.Compose([
+            transforms.ToTensor()
+        ])
+
+    def __call__(self, labels):
+        if self.is_train:
+            labels['img1'] = crop_to_size(labels['img1'], 128, 32)
+            labels['img1'] = self.train_transform(labels['img1'])
+            labels['img2'] = crop_to_size(labels['img1'], 128, 32)
+            labels['img2'] = self.train_transform(labels['img2'])
+        else:
+            labels['img1'] = crop_to_size(labels['img1'], 128, 32)
+            labels['img1'] = self.test_transform(labels['img1'])
+            labels['img2'] = crop_to_size(labels['img1'], 128, 32)
+            labels['img2'] = self.test_transform(labels['img2'])
         return labels
