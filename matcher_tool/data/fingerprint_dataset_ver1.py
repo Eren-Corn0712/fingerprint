@@ -13,8 +13,8 @@ from matplotlib import pyplot as plt
 from torchvision.utils import make_grid
 from matcher_tool.data.base import BaseDataset
 from matcher_tool.data.utils import find_dir, register_verify, register_enroll, nested_dict_to_list
-from matcher_tool.data.augment import FingerPrintDataAug_1
-from matcher_tool.data.dataset_wrappers import WrappersDataset
+from matcher_tool.data.augment import FingerPrintDataAug_1, FingerPrintDataAug_2
+
 
 def register_finger_print_data(root, fmt: str = 'png') -> Tuple[Dict, str]:
     users = find_dir(root)
@@ -112,7 +112,7 @@ class FingerPrintDataset(BaseDataset):
     def load_image(self, im_file) -> Image.Image:
         with open(im_file, "rb") as f:
             img = Image.open(f)
-            return img.convert("RGB")
+            return img.convert("L")
 
     def __getitem__(self, index):
         label = self.get_label_info(index)
@@ -133,9 +133,6 @@ class FingerPrintDataset(BaseDataset):
         label.pop('img1', None), label.pop('img2', None), label.pop('overlap', None)
         return label
 
-    def select_dataset(self):
-        pass
-
     def __len__(self):
         return len(self.labels)
 
@@ -152,12 +149,17 @@ def show(imgs):
 
 
 if __name__ == '__main__':
-    transform = FingerPrintDataAug_1(global_crops_scale=(1.0, 1.0),
-                                     local_crops_number=(16,),
-                                     local_crops_scale=(0.15, 0.50),
-                                     local_crops_size=(32,))
+    transform1 = FingerPrintDataAug_1(global_crops_scale=(1.0, 1.0),
+                                      local_crops_number=(16,),
+                                      local_crops_scale=(0.15, 0.50),
+                                      local_crops_size=(32,))
+
+    transform2 = FingerPrintDataAug_2(global_crops_scale=(0.5, 1.0),
+                                      local_crops_number=(16,),
+                                      local_crops_scale=(0.15, 0.50),
+                                      local_crops_size=(32,))
     fpd = FingerPrintDataset("/home/corn/PycharmProjects/fingerprint/train",
-                             transform=transform)
+                             transform=transform2)
     fpd_loader = DataLoader(fpd, batch_size=4)
 
     index = 0

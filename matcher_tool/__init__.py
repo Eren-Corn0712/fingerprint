@@ -1,3 +1,3 @@
-__version__ = "8.0.25"
+__version__ = "0.0.1"
 
 __all__ = ["__version__"]  # allow simpler import

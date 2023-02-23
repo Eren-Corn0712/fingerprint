@@ -99,10 +99,13 @@ def get_latest_run(search_dir='.'):
     return max(last_list, key=os.path.getctime) if last_list else ''
 
 
-def find_file(root: str, fmt: str = "png", recursive: bool = False) -> List[Path]:
+def find_files(root: str, fmt: str = "png", recursive: bool = False) -> List[Path]:
+    # Return all files with the specified format in the directory.
     pattern = f'**/*.{fmt}' if recursive else f'*.{fmt}'
     return sorted(list(Path(root).glob(pattern=pattern)))
 
 
-def find_dir(root: str) -> List[Path]:
-    return [p for p in list(Path(root).glob('*')) if p.is_dir()]
+def find_directories(root: str, recursive=False) -> List[Path]:
+    # Return all directories in the specified root directory.
+    pattern = "**/*" if recursive else "*"
+    return [p for p in list(Path(root).glob(pattern=pattern)) if p.is_dir()]

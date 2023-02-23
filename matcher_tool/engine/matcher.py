@@ -18,9 +18,10 @@ from matcher_tool.data.dataset import FingerPrintDataset
 class BaseMatcher(object):
     def __init__(self, cfg=DEFAULT_CFG, overrides=None):
         self.args = get_cfg(cfg, overrides)
-        self.console = LOGGER
-        self.profile = Profile
-        # Dirs
+        self.console = LOGGER  # logger console
+        self.profile = Profile  # time measurement
+
+        # Create the Project and Name and output folder.
         project = self.args.project
         name = self.args.name or f"{self.args.mode}"
         if hasattr(self.args, 'save_dir'):
@@ -29,6 +30,7 @@ class BaseMatcher(object):
             self.save_dir = Path(
                 increment_path(Path(project) / name, exist_ok=self.args.exist_ok if RANK in {-1, 0} else True))
 
+        # Save the Yaml settings
         if RANK in {-1, 0}:
             self.args.save_dir = str(self.save_dir)
             yaml_save(self.save_dir / 'args.yaml', vars(self.args))  # save run args
