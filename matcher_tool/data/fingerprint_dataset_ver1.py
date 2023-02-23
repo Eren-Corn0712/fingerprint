@@ -7,10 +7,12 @@ import torchvision.transforms.functional as F
 from pathlib import Path
 from typing import Tuple, Dict
 from torch.utils.data import DataLoader
-
+from itertools import product
 from PIL import Image
 from matplotlib import pyplot as plt
 from torchvision.utils import make_grid
+from tqdm import tqdm
+
 from matcher_tool.data.base import BaseDataset
 from matcher_tool.data.utils import find_dir, register_verify, register_enroll, nested_dict_to_list
 from matcher_tool.data.augment import FingerPrintDataAug_1, FingerPrintDataAug_2, PairFingerPrintAug
@@ -161,7 +163,7 @@ class PairImageFingerPrintDataset(FingerPrintDataset):
                 label['match'] = 1
             else:
                 label['img2'] = copy.deepcopy(label['img1'])
-                label['match'] = 0
+                label['match'] = 1
 
         if self.transform:
             label = self.transform(label)
@@ -180,6 +182,17 @@ def show(imgs):
         axs[0, i].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
 
 
+def show_mutil_crop_arg(data_loader):
+    index = 0
+    for label in data_loader:
+        images = label['multi']
+        global_view = [view[index] for view in images[:2]]
+        local_view = [view[index] for view in images[2:]]
+        show(make_grid(global_view))
+        show(make_grid(local_view))
+        plt.show()
+
+
 class Test_Dataset(object):
     def __init__(self):
         self.datasets = FingerPrintDataset("/home/corn/PycharmProjects/fingerprint/train")
@@ -191,7 +204,7 @@ class Test_Dataset(object):
                                           local_crops_scale=(0.15, 0.50),
                                           local_crops_size=(32,))
         self.datasets.transform = transform1
-        self.show_mutil_crop_arg(DataLoader(self.datasets, batch_size=4))
+        show_mutil_crop_arg(DataLoader(self.datasets, batch_size=4))
 
     def test_transform2(self):
         transform2 = FingerPrintDataAug_2(global_crops_scale=(0.5, 1.0),
@@ -199,17 +212,7 @@ class Test_Dataset(object):
                                           local_crops_scale=(0.15, 0.50),
                                           local_crops_size=(32,))
         self.datasets.transform = transform2
-        self.show_mutil_crop_arg(DataLoader(self.datasets, batch_size=4))
-
-    def show_mutil_crop_arg(self, data_loader):
-        index = 0
-        for label in data_loader:
-            images = label['multi']
-            global_view = [view[index] for view in images[:2]]
-            local_view = [view[index] for view in images[2:]]
-            show(make_grid(global_view))
-            show(make_grid(local_view))
-            plt.show()
+        show_mutil_crop_arg(DataLoader(self.datasets, batch_size=4))
 
     def test_pair_dataset(self):
         self.pair_datasets.transform = PairFingerPrintAug()

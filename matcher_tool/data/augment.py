@@ -357,7 +357,7 @@ class InferenceFingerPrintAug(object):
 class PairFingerPrintAug(object):
     def __init__(self, size: Tuple[int, int] = (128, 32), is_train: bool = True):
         self.size = size
-        self.is_train = True
+        self.is_train = is_train
         self.train_transform = transforms.Compose([
             transforms.RandomVerticalFlip(0.5),
             transforms.RandomHorizontalFlip(0.5),
@@ -371,11 +371,11 @@ class PairFingerPrintAug(object):
         if self.is_train:
             labels['img1'] = crop_to_size(labels['img1'], 128, 32)
             labels['img1'] = self.train_transform(labels['img1'])
-            labels['img2'] = crop_to_size(labels['img1'], 128, 32)
+            labels['img2'] = crop_to_size(labels['img2'], 128, 32)
             labels['img2'] = self.train_transform(labels['img2'])
         else:
             labels['img1'] = crop_to_size(labels['img1'], 128, 32)
             labels['img1'] = self.test_transform(labels['img1'])
-            labels['img2'] = crop_to_size(labels['img1'], 128, 32)
+            labels['img2'] = crop_to_size(labels['img2'], 128, 32)
             labels['img2'] = self.test_transform(labels['img2'])
         return labels

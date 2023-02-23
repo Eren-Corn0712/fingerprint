@@ -8,7 +8,7 @@ import torchvision
 import torch.nn.functional as F
 from pathlib import Path
 
-from esvit.models import custom_model
+from models import custom_model
 from matcher_tool.engine.matcher import BaseMatcher
 from matcher_tool.utils import DEFAULT_CFG, TQDM_BAR_FORMAT, is_dir_writeable
 from matcher_tool.data.fingerprint_dataset_ver1 import FingerPrintDataset
@@ -120,6 +120,7 @@ class DINOModelMatcher(BaseMatcher):
         return feature
 
     def select_enroll_verify_fake(self, features: Dict, user, finger):
+        # TODO: We can optimize this function by using the filter.
         enroll_features, verify_features, fake_features = {}, {}, {}
         for path, feature in features.items():
             u, f, s = path.parts[:3]
