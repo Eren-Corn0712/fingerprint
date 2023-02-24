@@ -3,12 +3,12 @@ train_data: "/home/corn/PycharmProjects/fingerprint/train"
 test_data: "/home/corn/PycharmProjects/fingerprint/test"
 
 project: runs  # project name
-name: resnet18_wo_maxpool_16384_fingerprint_aug  # experiment name
+name: resnet18_wo_maxpool_16384_fingerprint_aug_2  # experiment name
 
 batch_size: 128
 num_workers: 8
 model: "resnet18_wo_maxpool"
-weights: "runs/resnet18_wo_maxpool_16384_fingerprint_aug/lowest.pth"
+weights: "runs/resnet18_wo_maxpool_16384_fingerprint_aug_2/lowest.pth"
 extract_layers: [ 'layer1', 'layer2', 'layer3' ]
 device: 1
 distance: "cos"

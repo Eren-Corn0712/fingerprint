@@ -344,12 +344,72 @@ class FingerPrintDataAug_2(object):
         return labels
 
 
+class FingerPrintDataAug_3(object):
+    def __init__(self, global_crops_scale, local_crops_scale, local_crops_number, local_crops_size=96):
+        if not isinstance(local_crops_size, tuple) or not isinstance(local_crops_size, list):
+            local_crops_size = list(local_crops_size)
+
+        if not isinstance(local_crops_number, tuple) or not isinstance(local_crops_number, list):
+            local_crops_number = list(local_crops_number)
+
+        self.local_crops_number = local_crops_number
+
+        normalize = transforms.Compose([
+            transforms.ToTensor(),
+        ])
+
+        # first global crop
+        self.glo_trans = transforms.Compose(
+            [transforms.RandomResizedCrop(size=(32, 128), scale=global_crops_scale, ratio=(4, 4)),
+             transforms.RandomApply([EGISPreprocess()], p=0.5),
+             transforms.RandomHorizontalFlip(0.5),
+             transforms.RandomVerticalFlip(0.5),
+             RandomGaussianBlur(0.5),
+             normalize])
+        # transformation for the local small crops
+
+        self.loc_trans = []
+        for l_size in local_crops_size:
+            self.loc_trans.append(transforms.Compose([
+                transforms.RandomResizedCrop(l_size, scale=local_crops_scale, ratio=(1.0, 1.0)),
+                transforms.RandomApply([EGISPreprocess()], p=0.5),
+                transforms.RandomRotation(degrees=(-180, 180)),
+                RandomGaussianBlur(0.5),
+                normalize,
+            ]))
+
+    def __call__(self, labels):
+        crops = []
+        labels['img1'] = crop_to_size(labels['img1'], 128, 32)
+        labels['img2'] = crop_to_size(labels['img2'], 128, 32)
+        crops.append(self.glo_trans(labels['img1']))
+        crops.append(self.glo_trans(labels['img2']))
+        for i, n_crop in enumerate(self.local_crops_number):
+            for _ in range(n_crop):
+                crops.append(self.loc_trans[i](labels['img1'])) if i < n_crop // 2 else crops.append(
+                    self.loc_trans[i](labels['img2']))
+        labels['multi'] = crops
+        return labels
+
+
 class InferenceFingerPrintAug(object):
     def __init__(self, size=(128, 32)):
         self.size = size
 
     def __call__(self, labels):
         labels['img'] = crop_to_size(labels['img1'], 128, 32)
+        labels['img'] = transforms.ToTensor()(labels['img'])
+        return labels
+
+
+class EGISInferenceFingerPrintAug(object):
+    def __init__(self, size=(128, 32)):
+        self.size = size
+        self.egis_preocess = EGISPreprocess()
+
+    def __call__(self, labels):
+        labels['img'] = crop_to_size(labels['img1'], 128, 32)
+        labels['img'] = self.egis_preocess(labels['img'])
         labels['img'] = transforms.ToTensor()(labels['img'])
         return labels
 
