@@ -289,19 +289,20 @@ class Test_Dataset(object):
 
     def test_transform2(self):
         transform = FingerPrintDataAug_2(global_crops_scale=(0.5, 1.0),
-                                          local_crops_number=(16,),
-                                          local_crops_scale=(0.15, 0.50),
-                                          local_crops_size=(32,))
+                                         local_crops_number=(16,),
+                                         local_crops_scale=(0.15, 0.50),
+                                         local_crops_size=(32,))
         self.datasets.transform = transform
         show_mutil_crop_arg(DataLoader(self.datasets, batch_size=4))
 
     def test_transform3(self):
         transform = FingerPrintDataAug_3(global_crops_scale=(0.5, 1.0),
-                                          local_crops_number=(16,),
-                                          local_crops_scale=(0.15, 0.50),
-                                          local_crops_size=(32,))
+                                         local_crops_number=(16,),
+                                         local_crops_scale=(0.15, 0.50),
+                                         local_crops_size=(32,))
         self.datasets.transform = transform
         show_mutil_crop_arg(DataLoader(self.datasets, batch_size=4))
+
     def test_pair_dataset(self):
         self.pair_datasets.transform = PairFingerPrintAug()
         data_loader = DataLoader(self.pair_datasets, batch_size=128)
@@ -311,6 +312,4 @@ class Test_Dataset(object):
 
 if __name__ == '__main__':
     test_class = Test_Dataset()
-    # test_class.test_transform()
-    # test_class.test_transform1()
-    # test_class.test_transform2()
+    test_class.test_transform3()
