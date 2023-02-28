@@ -8,7 +8,7 @@ import torchvision
 import torch.nn.functional as F
 from pathlib import Path
 
-from esvit.models import custom_model
+from models import custom_model
 from matcher_tool.engine.matcher import BaseMatcher
 from matcher_tool.utils import DEFAULT_CFG, TQDM_BAR_FORMAT, is_dir_writeable
 from matcher_tool.data.fingerprint_dataset_ver1 import FingerPrintDataset
@@ -93,19 +93,19 @@ class DINOModelMatcher(BaseMatcher):
             with torch.no_grad():
                 output = self.model(imgs)
 
-            batch_concate_feature = [output.cpu().detach().numpy()]
+            batch_concat_feature = [output.cpu().detach().numpy()]
             if self.feature_extractor:
                 for k, v in self.feature_extractor.features.items():
                     avg_fea = F.adaptive_avg_pool2d(v, (1, 1)).flatten(1, 3)  # B C H W -> B C 1 1 -> B X C
                     if avg_fea is not None:
-                        batch_concate_feature.append(avg_fea.cpu().detach().numpy())
+                        batch_concat_feature.append(avg_fea.cpu().detach().numpy())
 
-            batch_concate_feature = np.concatenate(batch_concate_feature, axis=1)
+            batch_concat_feature = np.concatenate(batch_concat_feature, axis=1)
 
             if self.feature_extractor:
                 self.feature_extractor.remove_hooks()
 
-            for p, fea in zip(paths, batch_concate_feature):
+            for p, fea in zip(paths, batch_concat_feature):
                 p = Path(p)
                 file_name, st, enrl_verf, finger, user, *args = p.parts[::-1]
                 k = Path(user) / finger / enrl_verf / st / file_name
@@ -120,6 +120,7 @@ class DINOModelMatcher(BaseMatcher):
         return feature
 
     def select_enroll_verify_fake(self, features: Dict, user, finger):
+        # TODO: We can optimize this function by using the filter.
         enroll_features, verify_features, fake_features = {}, {}, {}
         for path, feature in features.items():
             u, f, s = path.parts[:3]
