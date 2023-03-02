@@ -61,7 +61,8 @@ def DDP_model(model):
 
 def select_device(device='', batch=0, newline=False):
     # device = None or 'cpu' or 0 or '0' or '0,1,2,3'
-    s = f'Ultralytics YOLOv{__version__} 🚀 Python-{platform.python_version()} torch-{torch.__version__} '
+    s = f'🌸Yuan Ze University Finger Print Matcher{__version__}🌸 ' \
+        f'Python-{platform.python_version()} torch-{torch.__version__}'
     device = str(device).lower()
     for remove in 'cuda:', 'none', '(', ')', '[', ']', "'", ' ':
         device = device.replace(remove, '')  # to string, 'cuda:0' -> '0' and '(0, 1)' -> '0,1'
@@ -113,6 +114,20 @@ def time_sync():
         torch.cuda.synchronize()
     return time.time()
 
+
+def init_seeds(seed=0, deterministic=False):
+    # Initialize random number generator (RNG) seeds https://pytorch.org/docs/stable/notes/randomness.html
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)  # for Multi-GPU, exception safe
+    # torch.backends.cudnn.benchmark = True  # AutoBatch problem https://github.com/ultralytics/yolov5/issues/9287
+    if deterministic and TORCH_1_12:  # https://github.com/ultralytics/yolov5/pull/8213
+        torch.use_deterministic_algorithms(True)
+        torch.backends.cudnn.deterministic = True
+        os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
+        os.environ['PYTHONHASHSEED'] = str(seed)
 
 class FeatureExtractor:
     def __init__(self, model, layers: List[str]):

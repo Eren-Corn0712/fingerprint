@@ -12,7 +12,7 @@ from models import custom_model
 from matcher_tool.engine.matcher import BaseMatcher
 from matcher_tool.utils import DEFAULT_CFG, TQDM_BAR_FORMAT, is_dir_writeable
 from matcher_tool.data.fingerprint_dataset_ver1 import FingerPrintDataset
-from matcher_tool.utils.torch_utils import select_device, FeatureExtractor
+from matcher_tool.utils.torch_utils import select_device, FeatureExtractor, init_seeds
 from matcher_tool.utils.files import increment_path
 from torch.utils.data import DataLoader, Dataset, dataloader, distributed
 from matcher_tool.data.augment import InferenceFingerPrintAug
@@ -24,7 +24,7 @@ class DINOModelMatcher(BaseMatcher):
         super().__init__(cfg, overrides)
         self.batch_size = self.args.batch_size
         self.num_workers = self.args.num_workers
-
+        init_seeds()
         self.train_dataset = self.get_dataset(self.args.train_data)
         self.test_dataset = self.get_dataset(self.args.test_data)
         self.train_dataloader = self.get_dataloader(self.train_dataset)

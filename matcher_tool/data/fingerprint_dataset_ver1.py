@@ -148,42 +148,46 @@ class PairImageFingerPrintDataset(FingerPrintDataset):
     def __init__(self, img_path: str, transform):
         super().__init__(img_path, transform=transform)
         self.method = 0
-        self.pairs_labels = []
+        self.pairs_labels = self.get_pair_labels_impl1()
+
+    def get_pair_labels_impl1(self):
+        p = []
         for user, finger_list in self.user_finger.items():
             for finger in finger_list:
-                print(user, finger, len(self.pairs_labels))
+                print(user, finger, len(p))
                 enroll_labels, verify_labels, fake_labels = [], [], []
                 for label in self.labels:
                     u = label['user']
                     f = label['finger']
                     s = label['enrl_verf']
                     if u == user and f == finger and s == 'enroll':
-                        enroll_labels.extend(label)
+                        enroll_labels.append(label)
                     elif u == user and f == finger and s == 'verify':
-                        verify_labels.extend(label)
+                        verify_labels.append(label)
                     else:
-                        fake_labels.extend(label)
-                enroll_labels = random.sample(enroll_labels, min(20, len(enroll_labels)))
-                verify_labels = random.sample(verify_labels, min(20, len(verify_labels)))
-                fake_labels = random.sample(fake_labels, min(20, len(fake_labels)))
+                        fake_labels.append(label)
+                enroll_labels = random.sample(enroll_labels, min(10, len(enroll_labels)))
+                # verify_labels = random.sample(verify_labels, min(5, len(verify_labels)))
+                fake_labels = random.sample(fake_labels, min(len(verify_labels), len(fake_labels)))
                 for verify_label in verify_labels:
                     verify_label = self.update_labels_info(verify_label)
                     if verify_label['overlap'] == {}:
-                        pass
-                        # for enroll_label in enroll_labels:
-                        #     d = dict(im_file1=verify_label['im_file'],
-                        #              im_file2=enroll_label['im_file'],
-                        #              match=0)
-                        #     self.pairs_labels.append(d)
+                        for enroll_label in enroll_labels:
+                            d = dict(im_file1=verify_label['im_file'],
+                                     im_file2=enroll_label['im_file'],
+                                     match=0)
+                            p.append(d)
                     else:
                         paths_scores = zip(verify_label['overlap']['path'], verify_label['overlap']['score'])
                         selected_path = [Path(self.img_path) / p for p, s in paths_scores if float(s) != 0.0]
                         if selected_path:
-                            for p in selected_path:
+                            for s in selected_path:
+                                if not s.is_file():
+                                    continue
                                 d = dict(im_file1=verify_label['im_file'],
-                                         im_file2=str(p),
+                                         im_file2=str(s),
                                          match=1)
-                                self.pairs_labels.extend(d)
+                                p.append(d)
                         else:
                             pass
                             # for enroll_label in enroll_labels:
@@ -196,9 +200,45 @@ class PairImageFingerPrintDataset(FingerPrintDataset):
                         d = dict(im_file1=fake_label['im_file'],
                                  im_file2=enroll_label['im_file'],
                                  match=0)
-                        self.pairs_labels.extend(d)
+                        p.append(d)
         del self.labels, self.txt_files, self.npy_files
+        return p
 
+    def get_pair_labels_impl2(self):
+        p = []
+        for user, finger_list in self.user_finger.items():
+            for finger in finger_list:
+                print(user, finger, len(p))
+                enroll_labels, verify_labels, fake_labels = [], [], []
+                for label in self.labels:
+                    u = label['user']
+                    f = label['finger']
+                    s = label['enrl_verf']
+                    if u == user and f == finger and s == 'enroll':
+                        enroll_labels.append(label)
+                    elif u == user and f == finger and s == 'verify':
+                        verify_labels.append(label)
+                    else:
+                        fake_labels.append(label)
+                enroll_labels = random.sample(enroll_labels, min(10, len(enroll_labels)))
+                # verify_labels = random.sample(verify_labels, min(5, len(verify_labels)))
+                fake_labels = random.sample(fake_labels, min(len(verify_labels), len(fake_labels)))
+                for verify_label in verify_labels:
+                    for enroll_label in enroll_labels:
+                        d = dict(im_file1=verify_label['im_file'],
+                                 im_file2=enroll_label['im_file'],
+                                 match=1)
+                        p.append(d)
+
+                for fake_label in fake_labels:
+                    for enroll_label in enroll_labels:
+                        d = dict(im_file1=fake_label['im_file'],
+                                 im_file2=enroll_label['im_file'],
+                                 match=0)
+                        p.append(d)
+
+        del self.labels, self.txt_files, self.npy_files
+        return p
     @staticmethod
     def select_fake(x, user, finger, enrl_verf):
         return x['user'] != user and x['finger'] != finger and x['enrl_verf'] != enrl_verf
