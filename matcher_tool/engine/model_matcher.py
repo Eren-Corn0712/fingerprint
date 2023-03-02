@@ -32,12 +32,17 @@ class DINOModelMatcher(BaseMatcher):
 
         self.device = select_device(self.args.device)
         self.model = self.get_model().to(self.device, non_blocking=True)
+
         self.load_esvit_pretrained_weights(self.model, self.args.weights, "teacher")
 
         self.feature_extractor = FeatureExtractor(self.model, self.args.extract_layers)
         self.distance = self.args.distance
+        if self.distance == 'linear':
+            self.classifier = self.get_classifier(960 * 2, num_classes=2).to(self.device, non_blocking=True)
+            self.load_classifier(self.classifier, self.args.classifier_weights)
 
-    def load_esvit_pretrained_weights(self, model, pretrained_weights, checkpoint_key):
+    @staticmethod
+    def load_esvit_pretrained_weights(model, pretrained_weights, checkpoint_key):
         if os.path.isfile(pretrained_weights):
             state_dict = torch.load(pretrained_weights, map_location="cpu")
             if checkpoint_key is not None and checkpoint_key in state_dict:
@@ -45,9 +50,18 @@ class DINOModelMatcher(BaseMatcher):
                 state_dict = state_dict[checkpoint_key]
             state_dict = {k.replace("module.backbone.backbone.", ""): v for k, v in state_dict.items()}
             msg = model.load_state_dict(state_dict, strict=False)
-            self.log('Pretrained weights found at {} and loaded with msg: {}'.format(pretrained_weights, msg))
+            print('Pretrained weights found at {} and loaded with msg: {}'.format(pretrained_weights, msg))
         else:
             raise ValueError("Error loading")
+
+    @staticmethod
+    def load_classifier(model, pretrained_weights):
+        if os.path.exists(pretrained_weights):
+            state_dict = torch.load(pretrained_weights, map_location="cpu")
+            msg = model.load_state_dict(state_dict["state_dict"], strict=True)
+            print('Pretrained weights found at {} and loaded with msg: {}'.format(pretrained_weights, msg))
+        else:
+            raise ValueError(f"The path {pretrained_weights}")
 
     def get_model(self):
         arch = self.args.model
@@ -58,6 +72,10 @@ class DINOModelMatcher(BaseMatcher):
             model = custom_model.__dict__[arch]()
             model.fc = nn.Identity()
         return model
+
+    def get_classifier(self, dim: int, num_classes: int = 2):
+        from eval_linear_finger import LinearClassifier, Classifier
+        return Classifier(dim, num_classes)
 
     def get_dataset(self, data):
         return FingerPrintDataset(data,

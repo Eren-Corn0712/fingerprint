@@ -310,7 +310,7 @@ class FingerPrintDataAug_2(object):
         ])
 
         random_select = transforms.RandomChoice([
-            transforms.RandomResizedCrop(size=(32, 128), scale=global_crops_scale, ratio=(4, 4)),
+            transforms.RandomResizedCrop(size=(32, 128), scale=global_crops_scale, ratio=(4.0, 4.0)),
             EGISPreprocess(),
         ], p=[0.5, 0.5])
         # first global crop
@@ -324,6 +324,7 @@ class FingerPrintDataAug_2(object):
         self.loc_trans = []
         for l_size in local_crops_size:
             self.loc_trans.append(transforms.Compose([
+                # transforms.RandomResizedCrop(l_size, scale=local_crops_scale, ratio=(1.0, 1.0)),
                 transforms.RandomResizedCrop(l_size, scale=local_crops_scale, ratio=(1.0, 1.0)),
                 transforms.RandomRotation(degrees=(-180, 180)),
                 RandomGaussianBlur(0.5),
@@ -418,7 +419,10 @@ class PairFingerPrintAug(object):
     def __init__(self, size: Tuple[int, int] = (128, 32), is_train: bool = True):
         self.size = size
         self.is_train = is_train
+
         self.train_transform = transforms.Compose([
+            transforms.RandomResizedCrop(size=(32, 128), scale=(0.5, 1.0), ratio=(4, 4)),
+            transforms.RandomApply([EGISPreprocess()], p=0.5),
             transforms.RandomVerticalFlip(0.5),
             transforms.RandomHorizontalFlip(0.5),
             transforms.ToTensor()

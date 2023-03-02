@@ -2,6 +2,7 @@ import copy
 import os
 import random
 import numpy as np
+import torch
 import torchvision.transforms.functional as F
 
 from pathlib import Path
@@ -167,7 +168,7 @@ class PairImageFingerPrintDataset(FingerPrintDataset):
                     else:
                         fake_labels.append(label)
                 enroll_labels = random.sample(enroll_labels, min(10, len(enroll_labels)))
-                # verify_labels = random.sample(verify_labels, min(5, len(verify_labels)))
+                verify_labels = random.sample(verify_labels, min(100, len(verify_labels)))
                 fake_labels = random.sample(fake_labels, min(len(verify_labels), len(fake_labels)))
                 for verify_label in verify_labels:
                     verify_label = self.update_labels_info(verify_label)
@@ -189,12 +190,12 @@ class PairImageFingerPrintDataset(FingerPrintDataset):
                                          match=1)
                                 p.append(d)
                         else:
-                            pass
-                            # for enroll_label in enroll_labels:
-                            #     d = dict(im_file1=verify_label['im_file'],
-                            #              im_file2=enroll_label['im_file'],
-                            #              match=0)
-                            #     self.pairs_labels.append(d)
+                            for enroll_label in enroll_labels:
+                                d = dict(im_file1=verify_label['im_file'],
+                                         im_file2=enroll_label['im_file'],
+                                         match=0)
+                                p.append(d)
+
                 for fake_label in fake_labels:
                     for enroll_label in enroll_labels:
                         d = dict(im_file1=fake_label['im_file'],
@@ -239,6 +240,7 @@ class PairImageFingerPrintDataset(FingerPrintDataset):
 
         del self.labels, self.txt_files, self.npy_files
         return p
+
     @staticmethod
     def select_fake(x, user, finger, enrl_verf):
         return x['user'] != user and x['finger'] != finger and x['enrl_verf'] != enrl_verf
@@ -331,7 +333,7 @@ class Test_Dataset(object):
         transform = FingerPrintDataAug_2(global_crops_scale=(0.5, 1.0),
                                          local_crops_number=(16,),
                                          local_crops_scale=(0.15, 0.50),
-                                         local_crops_size=(32,))
+                                         local_crops_size=(64,))
         self.datasets.transform = transform
         show_mutil_crop_arg(DataLoader(self.datasets, batch_size=4))
 
@@ -352,4 +354,4 @@ class Test_Dataset(object):
 
 if __name__ == '__main__':
     test_class = Test_Dataset()
-    test_class.test_transform3()
+    test_class.test_transform2()
