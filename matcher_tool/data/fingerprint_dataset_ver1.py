@@ -16,11 +16,12 @@ from tqdm import tqdm
 
 from matcher_tool.data.base import BaseDataset
 from matcher_tool.data.utils import find_dir, register_verify, register_enroll, nested_dict_to_list
-from matcher_tool.data.augment import FingerPrintDataAug_1, \
-    FingerPrintDataAug_2, \
-    FingerPrintDataAug_3, \
+from matcher_tool.data.augment import FingerPrintDataAug1, \
+    FingerPrintDataAug2, \
+    FingerPrintDataAug3, \
     PairFingerPrintAug, \
-    FingerPrintDataAug
+    FingerPrintDataAug, \
+    FingerPrintDataAug4
 
 
 def register_finger_print_data(root, fmt: str = 'png') -> Tuple[Dict, str]:
@@ -149,27 +150,31 @@ class PairImageFingerPrintDataset(FingerPrintDataset):
     def __init__(self, img_path: str, transform):
         super().__init__(img_path, transform=transform)
         self.method = 0
-        self.pairs_labels = self.get_pair_labels_impl1()
+        self.pairs_labels, self.match_labels = self.get_pair_labels_impl1()
 
     def get_pair_labels_impl1(self):
         p = []
+        m_l = []
         for user, finger_list in self.user_finger.items():
             for finger in finger_list:
                 print(user, finger, len(p))
                 enroll_labels, verify_labels, fake_labels = [], [], []
+                count_dict = {}
                 for label in self.labels:
                     u = label['user']
                     f = label['finger']
                     s = label['enrl_verf']
+                    item = f"{u}-{f}-{s}"
                     if u == user and f == finger and s == 'enroll':
                         enroll_labels.append(label)
                     elif u == user and f == finger and s == 'verify':
                         verify_labels.append(label)
                     else:
-                        fake_labels.append(label)
-                enroll_labels = random.sample(enroll_labels, min(10, len(enroll_labels)))
-                verify_labels = random.sample(verify_labels, min(100, len(verify_labels)))
-                fake_labels = random.sample(fake_labels, min(len(verify_labels), len(fake_labels)))
+                        if count_dict.get(item, 0) < 5:
+                            count_dict[item] = count_dict.get(item, 0) + 1
+                            fake_labels.append(label)
+                print(count_dict)
+                enroll_labels = random.sample(enroll_labels, 5)
                 for verify_label in verify_labels:
                     verify_label = self.update_labels_info(verify_label)
                     if verify_label['overlap'] == {}:
@@ -177,6 +182,7 @@ class PairImageFingerPrintDataset(FingerPrintDataset):
                             d = dict(im_file1=verify_label['im_file'],
                                      im_file2=enroll_label['im_file'],
                                      match=0)
+                            m_l.append(0)
                             p.append(d)
                     else:
                         paths_scores = zip(verify_label['overlap']['path'], verify_label['overlap']['score'])
@@ -188,12 +194,14 @@ class PairImageFingerPrintDataset(FingerPrintDataset):
                                 d = dict(im_file1=verify_label['im_file'],
                                          im_file2=str(s),
                                          match=1)
+                                m_l.append(1)
                                 p.append(d)
                         else:
                             for enroll_label in enroll_labels:
                                 d = dict(im_file1=verify_label['im_file'],
                                          im_file2=enroll_label['im_file'],
                                          match=0)
+                                m_l.append(0)
                                 p.append(d)
 
                 for fake_label in fake_labels:
@@ -201,34 +209,40 @@ class PairImageFingerPrintDataset(FingerPrintDataset):
                         d = dict(im_file1=fake_label['im_file'],
                                  im_file2=enroll_label['im_file'],
                                  match=0)
+                        m_l.append(0)
                         p.append(d)
         del self.labels, self.txt_files, self.npy_files
-        return p
+        return p, np.array(m_l)
 
     def get_pair_labels_impl2(self):
         p = []
+        m_l = []
         for user, finger_list in self.user_finger.items():
             for finger in finger_list:
                 print(user, finger, len(p))
                 enroll_labels, verify_labels, fake_labels = [], [], []
+                count_dict = {}
                 for label in self.labels:
                     u = label['user']
                     f = label['finger']
                     s = label['enrl_verf']
+                    item = f"{u}-{f}-{s}"
                     if u == user and f == finger and s == 'enroll':
                         enroll_labels.append(label)
                     elif u == user and f == finger and s == 'verify':
                         verify_labels.append(label)
                     else:
-                        fake_labels.append(label)
-                enroll_labels = random.sample(enroll_labels, min(10, len(enroll_labels)))
-                # verify_labels = random.sample(verify_labels, min(5, len(verify_labels)))
-                fake_labels = random.sample(fake_labels, min(len(verify_labels), len(fake_labels)))
+                        if count_dict.get(item, 0) < 5:
+                            count_dict[item] = count_dict.get(item, 0) + 1
+                            fake_labels.append(label)
+                print(count_dict)
+                enroll_labels = random.sample(enroll_labels, 5)
                 for verify_label in verify_labels:
                     for enroll_label in enroll_labels:
                         d = dict(im_file1=verify_label['im_file'],
                                  im_file2=enroll_label['im_file'],
                                  match=1)
+                        m_l.append(1)
                         p.append(d)
 
                 for fake_label in fake_labels:
@@ -236,10 +250,11 @@ class PairImageFingerPrintDataset(FingerPrintDataset):
                         d = dict(im_file1=fake_label['im_file'],
                                  im_file2=enroll_label['im_file'],
                                  match=0)
+                        m_l.append(0)
                         p.append(d)
 
         del self.labels, self.txt_files, self.npy_files
-        return p
+        return p, np.array(m_l)
 
     @staticmethod
     def select_fake(x, user, finger, enrl_verf):
@@ -322,26 +337,34 @@ class Test_Dataset(object):
         show_mutil_crop_arg(DataLoader(self.datasets, batch_size=4))
 
     def test_transform1(self):
-        transform = FingerPrintDataAug_1(global_crops_scale=(0.5, 1.0),
-                                         local_crops_number=(16,),
-                                         local_crops_scale=(0.15, 0.50),
-                                         local_crops_size=(32,))
+        transform = FingerPrintDataAug1(global_crops_scale=(0.5, 1.0),
+                                        local_crops_number=(16,),
+                                        local_crops_scale=(0.15, 0.50),
+                                        local_crops_size=(32,))
         self.datasets.transform = transform
         show_mutil_crop_arg(DataLoader(self.datasets, batch_size=4))
 
     def test_transform2(self):
-        transform = FingerPrintDataAug_2(global_crops_scale=(0.5, 1.0),
-                                         local_crops_number=(16,),
-                                         local_crops_scale=(0.15, 0.50),
-                                         local_crops_size=(64,))
+        transform = FingerPrintDataAug2(global_crops_scale=(0.5, 1.0),
+                                        local_crops_number=(16,),
+                                        local_crops_scale=(0.15, 0.50),
+                                        local_crops_size=(64,))
         self.datasets.transform = transform
         show_mutil_crop_arg(DataLoader(self.datasets, batch_size=4))
 
     def test_transform3(self):
-        transform = FingerPrintDataAug_3(global_crops_scale=(0.5, 1.0),
-                                         local_crops_number=(16,),
-                                         local_crops_scale=(0.15, 0.50),
-                                         local_crops_size=(32,))
+        transform = FingerPrintDataAug3(global_crops_scale=(0.5, 1.0),
+                                        local_crops_number=(16,),
+                                        local_crops_scale=(0.15, 0.50),
+                                        local_crops_size=(32,))
+        self.datasets.transform = transform
+        show_mutil_crop_arg(DataLoader(self.datasets, batch_size=4))
+
+    def test_transform4(self):
+        transform = FingerPrintDataAug4(global_crops_scale=(0.5, 1.0),
+                                        local_crops_number=(16,),
+                                        local_crops_scale=(0.15, 0.50),
+                                        local_crops_size=(32,))
         self.datasets.transform = transform
         show_mutil_crop_arg(DataLoader(self.datasets, batch_size=4))
 
@@ -354,4 +377,4 @@ class Test_Dataset(object):
 
 if __name__ == '__main__':
     test_class = Test_Dataset()
-    test_class.test_transform2()
+    test_class.test_transform4()
