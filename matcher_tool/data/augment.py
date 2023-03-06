@@ -201,38 +201,18 @@ class RandomRotateAndCrop(object):
         return bb_w - 2 * x, bb_h - 2 * y
 
 
-class FingerPrintDataAug(object):
+# TODO: We need use inheritance to reduce the code.
+class BaseMutilAug(object):
     def __init__(self, global_crops_scale, local_crops_scale, local_crops_number, local_crops_size=96):
         if not isinstance(local_crops_size, tuple) or not isinstance(local_crops_size, list):
-            local_crops_size = list(local_crops_size)
+            self.local_crops_size = list(local_crops_size)
 
         if not isinstance(local_crops_number, tuple) or not isinstance(local_crops_number, list):
-            local_crops_number = list(local_crops_number)
+            self.local_crops_number = list(local_crops_number)
 
         self.local_crops_number = local_crops_number
-
-        normalize = transforms.Compose([
-            transforms.ToTensor(),
-        ])
-        resize_filp_affine = transforms.Compose([transforms.Resize(size=(32, 128)),
-                                                 transforms.RandomHorizontalFlip(0.5),
-                                                 transforms.RandomVerticalFlip(0.5)])
-        # first global crop
-        self.glo_trans = transforms.Compose([resize_filp_affine,
-                                             RandomGaussianBlur(0.5), normalize])
-        # transformation for the local small crops
-
+        self.glo_trans = None
         self.loc_trans = []
-        for l_size in local_crops_size:
-            self.loc_trans.append(transforms.Compose([
-                # transforms.RandomResizedCrop(l_size, scale=local_crops_scale, ratio=(1.0, 1.0)),
-                # MyRotationTransform([0, 45, 90, 135, 180, 225, 270, 315]),
-                RandomRotateAndCrop(angle=list(range(0, 360 + 1, 45)), p=1.0),
-                transforms.Resize(size=(l_size, l_size)),
-                transforms.RandomEqualize(p=0.1),
-                RandomGaussianBlur(0.5),
-                normalize,
-            ]))
 
     def __call__(self, labels):
         crops = []
@@ -248,19 +228,36 @@ class FingerPrintDataAug(object):
         return labels
 
 
-class FingerPrintDataAug_1(object):
+class FingerPrintDataAug(BaseMutilAug):
     def __init__(self, global_crops_scale, local_crops_scale, local_crops_number, local_crops_size=96):
-        if not isinstance(local_crops_size, tuple) or not isinstance(local_crops_size, list):
-            local_crops_size = list(local_crops_size)
+        super().__init__(global_crops_scale, local_crops_scale, local_crops_number, local_crops_size)
+        normalize = transforms.ToTensor()
 
-        if not isinstance(local_crops_number, tuple) or not isinstance(local_crops_number, list):
-            local_crops_number = list(local_crops_number)
+        resize_filp_affine = transforms.Compose([transforms.Resize(size=(32, 128)),
+                                                 transforms.RandomHorizontalFlip(0.5),
+                                                 transforms.RandomVerticalFlip(0.5)])
+        # first global crop
+        self.glo_trans = transforms.Compose([resize_filp_affine,
+                                             RandomGaussianBlur(0.5), normalize])
+        # transformation for the local small crops
 
-        self.local_crops_number = local_crops_number
+        self.loc_trans = []
+        for l_size in self.local_crops_size:
+            self.loc_trans.append(transforms.Compose([
+                # transforms.RandomResizedCrop(l_size, scale=local_crops_scale, ratio=(1.0, 1.0)),
+                # MyRotationTransform([0, 45, 90, 135, 180, 225, 270, 315]),
+                RandomRotateAndCrop(angle=list(range(0, 360 + 1, 45)), p=1.0),
+                transforms.Resize(size=(l_size, l_size)),
+                transforms.RandomEqualize(p=0.1),
+                RandomGaussianBlur(0.5),
+                normalize,
+            ]))
 
-        normalize = transforms.Compose([
-            transforms.ToTensor(),
-        ])
+
+class FingerPrintDataAug1(BaseMutilAug):
+    def __init__(self, global_crops_scale, local_crops_scale, local_crops_number, local_crops_size=96):
+        super().__init__(global_crops_scale, local_crops_scale, local_crops_number, local_crops_size)
+        normalize = transforms.ToTensor()
         resize_filp_affine = transforms.Compose([transforms.RandomResizedCrop(size=(32, 128),
                                                                               scale=global_crops_scale,
                                                                               ratio=(4, 4)),
@@ -273,7 +270,7 @@ class FingerPrintDataAug_1(object):
         # transformation for the local small crops
 
         self.loc_trans = []
-        for l_size in local_crops_size:
+        for l_size in self.local_crops_size:
             self.loc_trans.append(transforms.Compose([
                 transforms.RandomResizedCrop(l_size, scale=local_crops_scale, ratio=(1.0, 1.0)),
                 transforms.RandomRotation(degrees=(-180, 180)),
@@ -281,36 +278,14 @@ class FingerPrintDataAug_1(object):
                 normalize,
             ]))
 
-    def __call__(self, labels):
-        crops = []
-        labels['img1'] = crop_to_size(labels['img1'], 128, 32)
-        labels['img2'] = crop_to_size(labels['img2'], 128, 32)
-        crops.append(self.glo_trans(labels['img1']))
-        crops.append(self.glo_trans(labels['img2']))
-        for i, n_crop in enumerate(self.local_crops_number):
-            for _ in range(n_crop):
-                crops.append(self.loc_trans[i](labels['img1'])) if i < n_crop // 2 else crops.append(
-                    self.loc_trans[i](labels['img2']))
-        labels['multi'] = crops
-        return labels
 
-
-class FingerPrintDataAug_2(object):
+class FingerPrintDataAug2(BaseMutilAug):
     def __init__(self, global_crops_scale, local_crops_scale, local_crops_number, local_crops_size=96):
-        if not isinstance(local_crops_size, tuple) or not isinstance(local_crops_size, list):
-            local_crops_size = list(local_crops_size)
-
-        if not isinstance(local_crops_number, tuple) or not isinstance(local_crops_number, list):
-            local_crops_number = list(local_crops_number)
-
-        self.local_crops_number = local_crops_number
-
-        normalize = transforms.Compose([
-            transforms.ToTensor(),
-        ])
+        super().__init__(global_crops_scale, local_crops_scale, local_crops_number, local_crops_size)
+        normalize = transforms.ToTensor()
 
         random_select = transforms.RandomChoice([
-            transforms.RandomResizedCrop(size=(32, 128), scale=global_crops_scale, ratio=(4, 4)),
+            transforms.RandomResizedCrop(size=(32, 128), scale=global_crops_scale, ratio=(4.0, 4.0)),
             EGISPreprocess(),
         ], p=[0.5, 0.5])
         # first global crop
@@ -324,39 +299,18 @@ class FingerPrintDataAug_2(object):
         self.loc_trans = []
         for l_size in local_crops_size:
             self.loc_trans.append(transforms.Compose([
+                # transforms.RandomResizedCrop(l_size, scale=local_crops_scale, ratio=(1.0, 1.0)),
                 transforms.RandomResizedCrop(l_size, scale=local_crops_scale, ratio=(1.0, 1.0)),
                 transforms.RandomRotation(degrees=(-180, 180)),
                 RandomGaussianBlur(0.5),
                 normalize,
             ]))
 
-    def __call__(self, labels):
-        crops = []
-        labels['img1'] = crop_to_size(labels['img1'], 128, 32)
-        labels['img2'] = crop_to_size(labels['img2'], 128, 32)
-        crops.append(self.glo_trans(labels['img1']))
-        crops.append(self.glo_trans(labels['img2']))
-        for i, n_crop in enumerate(self.local_crops_number):
-            for _ in range(n_crop):
-                crops.append(self.loc_trans[i](labels['img1'])) if i < n_crop // 2 else crops.append(
-                    self.loc_trans[i](labels['img2']))
-        labels['multi'] = crops
-        return labels
 
-
-class FingerPrintDataAug_3(object):
+class FingerPrintDataAug3(BaseMutilAug):
     def __init__(self, global_crops_scale, local_crops_scale, local_crops_number, local_crops_size=96):
-        if not isinstance(local_crops_size, tuple) or not isinstance(local_crops_size, list):
-            local_crops_size = list(local_crops_size)
-
-        if not isinstance(local_crops_number, tuple) or not isinstance(local_crops_number, list):
-            local_crops_number = list(local_crops_number)
-
-        self.local_crops_number = local_crops_number
-
-        normalize = transforms.Compose([
-            transforms.ToTensor(),
-        ])
+        super().__init__(global_crops_scale, local_crops_scale, local_crops_number, local_crops_size)
+        normalize = transforms.ToTensor()
 
         # first global crop
         self.glo_trans = transforms.Compose(
@@ -369,7 +323,7 @@ class FingerPrintDataAug_3(object):
         # transformation for the local small crops
 
         self.loc_trans = []
-        for l_size in local_crops_size:
+        for l_size in self.local_crops_size:
             self.loc_trans.append(transforms.Compose([
                 transforms.RandomResizedCrop(l_size, scale=local_crops_scale, ratio=(1.0, 1.0)),
                 transforms.RandomApply([EGISPreprocess()], p=0.5),
@@ -378,18 +332,35 @@ class FingerPrintDataAug_3(object):
                 normalize,
             ]))
 
-    def __call__(self, labels):
-        crops = []
-        labels['img1'] = crop_to_size(labels['img1'], 128, 32)
-        labels['img2'] = crop_to_size(labels['img2'], 128, 32)
-        crops.append(self.glo_trans(labels['img1']))
-        crops.append(self.glo_trans(labels['img2']))
-        for i, n_crop in enumerate(self.local_crops_number):
-            for _ in range(n_crop):
-                crops.append(self.loc_trans[i](labels['img1'])) if i < n_crop // 2 else crops.append(
-                    self.loc_trans[i](labels['img2']))
-        labels['multi'] = crops
-        return labels
+
+class FingerPrintDataAug4(BaseMutilAug):
+    def __init__(self, global_crops_scale, local_crops_scale, local_crops_number, local_crops_size=96):
+        super().__init__(global_crops_scale, local_crops_scale, local_crops_number, local_crops_size)
+        normalize = transforms.ToTensor()
+        random_choice = transforms.RandomChoice([
+            EGISPreprocess(),
+            transforms.RandomEqualize(),
+            transforms.RandomAdjustSharpness(2, p=0.5),
+            transforms.Compose([transforms.ToTensor(), transforms.RandomErasing(), transforms.ToPILImage()]),
+        ], p=[0.25] * 4)
+
+        self.glo_trans = transforms.Compose(
+            [transforms.RandomResizedCrop(size=(32, 128), scale=global_crops_scale, ratio=(4, 4)),
+             random_choice,
+             transforms.RandomHorizontalFlip(0.5),
+             transforms.RandomVerticalFlip(0.5),
+             RandomGaussianBlur(0.1),
+             normalize])
+
+        self.loc_trans = []
+        for l_size in self.local_crops_size:
+            self.loc_trans.append(transforms.Compose([
+                transforms.RandomResizedCrop(l_size, scale=local_crops_scale, ratio=(1.0, 1.0)),
+                random_choice,
+                transforms.RandomRotation(degrees=(-180, 180)),
+                RandomGaussianBlur(0.5),
+                normalize,
+            ]))
 
 
 class InferenceFingerPrintAug(object):
@@ -418,7 +389,10 @@ class PairFingerPrintAug(object):
     def __init__(self, size: Tuple[int, int] = (128, 32), is_train: bool = True):
         self.size = size
         self.is_train = is_train
+
         self.train_transform = transforms.Compose([
+            transforms.RandomResizedCrop(size=(32, 128), scale=(0.5, 1.0), ratio=(4, 4)),
+            transforms.RandomApply([EGISPreprocess()], p=0.5),
             transforms.RandomVerticalFlip(0.5),
             transforms.RandomHorizontalFlip(0.5),
             transforms.ToTensor()

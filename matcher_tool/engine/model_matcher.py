@@ -15,7 +15,7 @@ from matcher_tool.data.fingerprint_dataset_ver1 import FingerPrintDataset
 from matcher_tool.utils.torch_utils import select_device, FeatureExtractor, init_seeds
 from matcher_tool.utils.files import increment_path
 from torch.utils.data import DataLoader, Dataset, dataloader, distributed
-from matcher_tool.data.augment import InferenceFingerPrintAug
+from matcher_tool.data.augment import InferenceFingerPrintAug, EGISInferenceFingerPrintAug
 from tqdm import tqdm
 
 
@@ -32,12 +32,19 @@ class DINOModelMatcher(BaseMatcher):
 
         self.device = select_device(self.args.device)
         self.model = self.get_model().to(self.device, non_blocking=True)
+        self.model.eval()
+
         self.load_esvit_pretrained_weights(self.model, self.args.weights, "teacher")
 
         self.feature_extractor = FeatureExtractor(self.model, self.args.extract_layers)
         self.distance = self.args.distance
+        if self.distance == 'linear':
+            self.classifier = self.get_classifier(960 * 2, num_classes=2).to(self.device, non_blocking=True)
+            self.load_classifier(self.classifier, self.args.classifier_weights)
+            self.classifier.eval()
 
-    def load_esvit_pretrained_weights(self, model, pretrained_weights, checkpoint_key):
+    @staticmethod
+    def load_esvit_pretrained_weights(model, pretrained_weights, checkpoint_key):
         if os.path.isfile(pretrained_weights):
             state_dict = torch.load(pretrained_weights, map_location="cpu")
             if checkpoint_key is not None and checkpoint_key in state_dict:
@@ -45,9 +52,18 @@ class DINOModelMatcher(BaseMatcher):
                 state_dict = state_dict[checkpoint_key]
             state_dict = {k.replace("module.backbone.backbone.", ""): v for k, v in state_dict.items()}
             msg = model.load_state_dict(state_dict, strict=False)
-            self.log('Pretrained weights found at {} and loaded with msg: {}'.format(pretrained_weights, msg))
+            print('Pretrained weights found at {} and loaded with msg: {}'.format(pretrained_weights, msg))
         else:
             raise ValueError("Error loading")
+
+    @staticmethod
+    def load_classifier(model, pretrained_weights):
+        if os.path.exists(pretrained_weights):
+            state_dict = torch.load(pretrained_weights, map_location="cpu")
+            msg = model.load_state_dict(state_dict["state_dict"], strict=True)
+            print('Pretrained weights found at {} and loaded with msg: {}'.format(pretrained_weights, msg))
+        else:
+            raise ValueError(f"The path {pretrained_weights}")
 
     def get_model(self):
         arch = self.args.model
@@ -59,9 +75,13 @@ class DINOModelMatcher(BaseMatcher):
             model.fc = nn.Identity()
         return model
 
+    def get_classifier(self, dim: int, num_classes: int = 2):
+        from eval_linear_finger import LinearClassifier, Classifier
+        return Classifier(dim, num_classes)
+
     def get_dataset(self, data):
         return FingerPrintDataset(data,
-                                  transform=InferenceFingerPrintAug(size=(128, 32), ), )
+                                  transform=EGISInferenceFingerPrintAug(size=(128, 32), ), )
 
     def get_dataloader(self, dataset):
         return DataLoader(dataset,
@@ -79,7 +99,6 @@ class DINOModelMatcher(BaseMatcher):
 
         self.log(f"{prefix} data feature extracting.")
         self.log("Set Model to Evaluation model.")
-        self.model.eval()
 
         feature = {}
         pbar = tqdm(enumerate(dataloader), total=len(dataloader),
@@ -151,6 +170,25 @@ class DINOModelMatcher(BaseMatcher):
             result[v_p] = np.array(scores, dtype=np.float64)
         return result
 
+    def classifier_match(self, enroll_features: Dict, verify_features: Dict):
+        result = {}
+        pbar = tqdm(verify_features.items(), total=len(verify_features), bar_format=TQDM_BAR_FORMAT)
+        enroll_features = list(enroll_features.values())
+        enroll_features = torch.tensor(enroll_features)
+        enroll_features = enroll_features.to(self.device)
+
+        for v_p, verify_feature in pbar:
+            verify_feature = torch.from_numpy(verify_feature)[None, ...].to(self.device)
+            verify_feature = verify_feature.repeat(enroll_features.shape[0], 1)
+
+            input = torch.cat([verify_feature, enroll_features], dim=1)
+            with torch.no_grad():
+                score = self.classifier(input)
+            scores = score.tolist()
+            result[v_p] = np.array(scores, dtype=np.float64)
+
+        return result
+
     def dataset_match(self, prefix=""):
         features = self.get_feature(getattr(self, f"{prefix}_dataloader"), prefix)
         dataset = getattr(self, f"{prefix}_dataset")
@@ -167,9 +205,16 @@ class DINOModelMatcher(BaseMatcher):
                     f'{len(enroll_features)}',
                     f'{len(verify_features)}',
                     f'{len(fake_features)}'))
-
-                result_verf2enrl.append(self.match(enroll_features, verify_features))
-                result_fake2enrl.append(self.match(enroll_features, fake_features))
+                if self.distance in ['cos']:
+                    verf2enrl = self.match(enroll_features, verify_features)
+                    fake2enrl = self.match(enroll_features, fake_features)
+                elif self.distance == 'linear':
+                    verf2enrl = self.classifier_match(enroll_features, verify_features)
+                    fake2enrl = self.classifier_match(enroll_features, fake_features)
+                else:
+                    raise ValueError(f"{self.distance} is not supported.")
+                result_verf2enrl.append(verf2enrl)
+                result_fake2enrl.append(fake2enrl)
 
         file = self.save_dir / f"{prefix}_verf"
         f = str(increment_path(file).with_suffix('.npy'))
