@@ -163,10 +163,11 @@ class PairImageFingerPrintDataset(FingerPrintDataset):
             elif u == user_key and f == finger_key and s == 'verify':
                 verify_labels.append(label)
             else:
-                if count_dict.get(item, 0) < 5:
+                if count_dict.get(item, 0) < 20:
                     count_dict[item] = count_dict.get(item, 0) + 1
                     fake_labels.append(label)
 
+        enroll_labels = random.sample(enroll_labels, 20)
         LOGGER.info(('%10s' * 5) % (
             f'{user_key}', f'{finger_key}',
             f'{len(enroll_labels)}',

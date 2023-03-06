@@ -3,15 +3,16 @@ train_data: "/home/corn/PycharmProjects/fingerprint/train"
 test_data: "/home/corn/PycharmProjects/fingerprint/test"
 
 project: runs/resnet18_wo_maxpool_16384_fingerprint_aug_4  # project name
-name: cos  # experiment name
+name: normal/cos  # experiment name
 
+transform: normal
 batch_size: 128
 num_workers: 8
 model: "resnet18_wo_maxpool"
 weights: "runs/resnet18_wo_maxpool_16384_fingerprint_aug_4/lowest.pth"
 extract_layers: [ 'layer1', 'layer2', 'layer3' ]
 device: 1
-
 exist_ok: True
+
 distance: "cos"
 classifier_weights: "runs/resnet18_wo_maxpool_16384_fingerprint_aug_2/impl2/best_acc.pth"

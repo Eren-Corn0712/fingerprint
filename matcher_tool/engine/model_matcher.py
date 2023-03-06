@@ -30,7 +30,7 @@ class DINOModelMatcher(BaseMatcher):
         self.train_dataloader = self.get_dataloader(self.train_dataset)
         self.test_dataloader = self.get_dataloader(self.test_dataset)
 
-        self.device = select_device(self.args.device)
+        self.device = select_device(self.args.device, self.args.batch_size)
         self.model = self.get_model().to(self.device, non_blocking=True)
         self.model.eval()
 
@@ -79,9 +79,18 @@ class DINOModelMatcher(BaseMatcher):
         from eval_linear_finger import LinearClassifier, Classifier
         return Classifier(dim, num_classes)
 
+    def get_transform(self):
+        if self.args.transform == 'normal':
+            transform = InferenceFingerPrintAug()
+        elif self.args.transform == 'egis':
+            transform = EGISInferenceFingerPrintAug()
+        else:
+            raise ValueError(f"Unknown Transform : {self.args.transform}.")
+        return transform
+
     def get_dataset(self, data):
         return FingerPrintDataset(data,
-                                  transform=EGISInferenceFingerPrintAug())
+                                  transform=self.get_transform())
 
     def get_dataloader(self, dataset):
         return DataLoader(dataset,
