@@ -81,7 +81,7 @@ class DINOModelMatcher(BaseMatcher):
 
     def get_dataset(self, data):
         return FingerPrintDataset(data,
-                                  transform=EGISInferenceFingerPrintAug(size=(128, 32), ), )
+                                  transform=EGISInferenceFingerPrintAug())
 
     def get_dataloader(self, dataset):
         return DataLoader(dataset,

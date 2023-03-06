@@ -1,6 +1,7 @@
 import contextlib
 import glob
 import os
+import re
 import urllib
 from datetime import datetime
 from pathlib import Path
@@ -77,14 +78,14 @@ def file_date(path=__file__):
 
 def file_size(path):
     # Return file/dir size (MB)
-    mb = 1 << 20  # bytes to MiB (1024 ** 2)
-    path = Path(path)
-    if path.is_file():
-        return path.stat().st_size / mb
-    elif path.is_dir():
-        return sum(f.stat().st_size for f in path.glob('**/*') if f.is_file()) / mb
-    else:
-        return 0.0
+    if isinstance(path, (str, Path)):
+        mb = 1 << 20  # bytes to MiB (1024 ** 2)
+        path = Path(path)
+        if path.is_file():
+            return path.stat().st_size / mb
+        elif path.is_dir():
+            return sum(f.stat().st_size for f in path.glob('**/*') if f.is_file()) / mb
+    return 0.0
 
 
 def url2file(url):
@@ -109,3 +110,21 @@ def find_directories(root: str, recursive=False) -> List[Path]:
     # Return all directories in the specified root directory.
     pattern = "**/*" if recursive else "*"
     return [p for p in list(Path(root).glob(pattern=pattern)) if p.is_dir()]
+
+
+def create_file(save_dir: Path, name: str, suffix: str) -> str:
+    file = save_dir / name
+    file.parent.mkdir(parents=True, exist_ok=True)
+    file = file.with_suffix(suffix).resolve()
+    return str(file)
+
+
+def clean_str(s):
+    """
+    Cleans a string by replacing special characters with underscore _
+    Args:
+      s (str): a string needing special characters replaced
+    Returns:
+      (str): a string with special characters replaced by an underscore _
+    """
+    return re.sub(pattern='[|@#!¡·$€%&()=?¿^*;:,¨´><+]', repl='_', string=s)

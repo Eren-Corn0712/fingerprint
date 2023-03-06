@@ -13,7 +13,7 @@ from PIL import Image
 from matplotlib import pyplot as plt
 from torchvision.utils import make_grid
 from tqdm import tqdm
-
+from matcher_tool.utils import LOGGER
 from matcher_tool.data.base import BaseDataset
 from matcher_tool.data.utils import find_dir, register_verify, register_enroll, nested_dict_to_list
 from matcher_tool.data.augment import FingerPrintDataAug1, \
@@ -152,29 +152,34 @@ class PairImageFingerPrintDataset(FingerPrintDataset):
         self.method = 0
         self.pairs_labels, self.match_labels = self.get_pair_labels_impl1()
 
+    def select_enroll_verify_fake(self, user_key, finger_key):
+        enroll_labels, verify_labels, fake_labels = [], [], []
+        count_dict = {}
+        for label in self.labels:
+            u, f, s = label['user'], label['finger'], label['enrl_verf']
+            item = f"{u}-{f}-{s}"
+            if u == user_key and f == finger_key and s == 'enroll':
+                enroll_labels.append(label)
+            elif u == user_key and f == finger_key and s == 'verify':
+                verify_labels.append(label)
+            else:
+                if count_dict.get(item, 0) < 5:
+                    count_dict[item] = count_dict.get(item, 0) + 1
+                    fake_labels.append(label)
+
+        LOGGER.info(('%10s' * 5) % (
+            f'{user_key}', f'{finger_key}',
+            f'{len(enroll_labels)}',
+            f'{len(verify_labels)}',
+            f'{len(fake_labels)}'))
+        return enroll_labels, verify_labels, fake_labels
+
     def get_pair_labels_impl1(self):
         p = []
         m_l = []
         for user, finger_list in self.user_finger.items():
             for finger in finger_list:
-                print(user, finger, len(p))
-                enroll_labels, verify_labels, fake_labels = [], [], []
-                count_dict = {}
-                for label in self.labels:
-                    u = label['user']
-                    f = label['finger']
-                    s = label['enrl_verf']
-                    item = f"{u}-{f}-{s}"
-                    if u == user and f == finger and s == 'enroll':
-                        enroll_labels.append(label)
-                    elif u == user and f == finger and s == 'verify':
-                        verify_labels.append(label)
-                    else:
-                        if count_dict.get(item, 0) < 5:
-                            count_dict[item] = count_dict.get(item, 0) + 1
-                            fake_labels.append(label)
-                print(count_dict)
-                enroll_labels = random.sample(enroll_labels, 5)
+                enroll_labels, verify_labels, fake_labels = self.select_enroll_verify_fake(user, finger)
                 for verify_label in verify_labels:
                     verify_label = self.update_labels_info(verify_label)
                     if verify_label['overlap'] == {}:
@@ -219,24 +224,7 @@ class PairImageFingerPrintDataset(FingerPrintDataset):
         m_l = []
         for user, finger_list in self.user_finger.items():
             for finger in finger_list:
-                print(user, finger, len(p))
-                enroll_labels, verify_labels, fake_labels = [], [], []
-                count_dict = {}
-                for label in self.labels:
-                    u = label['user']
-                    f = label['finger']
-                    s = label['enrl_verf']
-                    item = f"{u}-{f}-{s}"
-                    if u == user and f == finger and s == 'enroll':
-                        enroll_labels.append(label)
-                    elif u == user and f == finger and s == 'verify':
-                        verify_labels.append(label)
-                    else:
-                        if count_dict.get(item, 0) < 5:
-                            count_dict[item] = count_dict.get(item, 0) + 1
-                            fake_labels.append(label)
-                print(count_dict)
-                enroll_labels = random.sample(enroll_labels, 5)
+                enroll_labels, verify_labels, fake_labels = self.select_enroll_verify_fake(user, finger)
                 for verify_label in verify_labels:
                     for enroll_label in enroll_labels:
                         d = dict(im_file1=verify_label['im_file'],

@@ -378,10 +378,31 @@ class EGISInferenceFingerPrintAug(object):
         self.size = size
         self.egis_preocess = EGISPreprocess()
 
+    def preprocess(self, img):
+        img = crop_to_size(img, 128, 32)
+        img = self.egis_preocess(img)
+        img = transforms.ToTensor()(img)
+        return img
+
     def __call__(self, labels):
-        labels['img'] = crop_to_size(labels['img1'], 128, 32)
-        labels['img'] = self.egis_preocess(labels['img'])
-        labels['img'] = transforms.ToTensor()(labels['img'])
+        labels['img'] = self.preprocess(labels['img1'])
+        return labels
+
+
+class EGISInferencePairFingerPrintAug(object):
+    def __init__(self, size=(128, 32)):
+        self.size = size
+        self.egis_preocess = EGISPreprocess()
+
+    def preprocess(self, img):
+        img = crop_to_size(img, 128, 32)
+        img = self.egis_preocess(img)
+        img = transforms.ToTensor()(img)
+        return img
+
+    def __call__(self, labels):
+        labels['img1'] = self.preprocess(labels['img1'])
+        labels['img2'] = self.preprocess(labels['img2'])
         return labels
 
 
