@@ -102,7 +102,7 @@ class FingerPrintDataset(BaseDataset):
         if Path(txt_file).is_file():
             label['overlap'] = self.read_txt(txt_file)
         else:
-            label['overlap'] = {}
+            raise ValueError("Overlap is None.")
         return label
 
     def read_txt(self, txt_file):
@@ -116,11 +116,6 @@ class FingerPrintDataset(BaseDataset):
                 d['path'].append(p)
                 d['score'].append(score)
         return d
-
-    def load_image(self, im_file) -> Image.Image:
-        with open(im_file, "rb") as f:
-            img = Image.open(f)
-            return img.convert("L")
 
     def __getitem__(self, index):
         label = self.get_label_info(index)
