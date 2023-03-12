@@ -181,3 +181,23 @@ def nested_dict_to_list(d):
         else:
             result.append((key, value))
     return result
+
+
+def traverse_directory(directory_path):
+    """
+    A function to traverse a directory and return the names of all files and subdirectories.
+
+    Args:
+        directory_path (Path): The path to the directory to traverse.
+
+    Returns:
+        A tuple containing two lists: (files_list, directories_list)
+    """
+    files_list = []
+    directories_list = []
+    for item in directory_path.iterdir():
+        if item.is_file():
+            files_list.append(item)
+        elif item.is_dir():
+            directories_list.append(item)
+    return files_list, directories_list

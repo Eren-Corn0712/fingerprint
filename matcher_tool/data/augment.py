@@ -433,4 +433,5 @@ class PairFingerPrintAug(object):
             labels['img1'] = self.test_transform(labels['img1'])
             labels['img2'] = crop_to_size(labels['img2'], 128, 32)
             labels['img2'] = self.test_transform(labels['img2'])
+
         return labels
