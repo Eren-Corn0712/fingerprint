@@ -18,7 +18,6 @@ class BaseDataset(Dataset):
                  img_path: str = None,
                  label_path: str = None,
                  prefix: str = "",
-                 cache: bool = False
                  ):
         super().__init__()
         self.img_path = img_path
@@ -32,10 +31,6 @@ class BaseDataset(Dataset):
         # cache stuff
         self.ims = [None] * self.ni
         self.npy_files = [Path(f).with_suffix(".npy") for f in self.im_files]
-        if cache:
-            pass
-            # TODO: we may be implemented
-            # self.cache_images(cache)
 
     def get_img_files(self, img_path):
         """Read image files."""

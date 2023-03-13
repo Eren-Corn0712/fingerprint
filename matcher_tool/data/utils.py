@@ -52,39 +52,39 @@ def exif_size(img):
     return s
 
 
-def verify_image_label(args):
-    # Verify one image-labels pair
-    im_file, lb_file, prefix = args
-    # number (missing, found, empty, corrupt), message, segments, keypoints
-    nm, nf, ne, nc, msg = 0, 0, 0, 0, ""
-    try:
-        # verify images
-        im = Image.open(im_file)
-        im.verify()  # PIL verify
-        shape = exif_size(im)  # image size
-        shape = (shape[1], shape[0])  # hw
-        assert (shape[0] > 9) & (shape[1] > 9), f"image size {shape} <10 pixels"
-        assert im.format.lower() in IMG_FORMATS, f"invalid image format {im.format}"
-        if im.format.lower() in ("jpg", "jpeg", "png"):
-            with open(im_file, "rb") as f:
-                f.seek(-2, 2)
-                if f.read() != b"\xff\xd9":  # corrupt JPEG
-                    ImageOps.exif_transpose(Image.open(im_file)).save(im_file, "JPEG", subsampling=0, quality=100)
-                    msg = f"{prefix}WARNING ⚠️ {im_file}: corrupt JPEG restored and saved"
-
-        # verify labels
-        if os.path.isfile(lb_file):
-            nf = 1  # labels found
-            with open(lb_file) as f:
-                lb = [x.split() for x in f.read().strip().splitlines() if len(x)]
-            nl = len(lb)
-
-        return im_file, lb, shape, nm, nf, ne, nc, msg
-
-    except Exception as e:
-        nc = 1
-        msg = f"{prefix}WARNING ⚠️ {im_file}: ignoring corrupt image/label: {e}"
-        return [None, None, None, nm, nf, ne, nc, msg]
+# def verify_image_label(args):
+#     # Verify one image-labels pair
+#     im_file, lb_file, prefix = args
+#     # number (missing, found, empty, corrupt), message, segments, keypoints
+#     nm, nf, ne, nc, msg = 0, 0, 0, 0, ""
+#     try:
+#         # verify images
+#         im = Image.open(im_file)
+#         im.verify()  # PIL verify
+#         shape = exif_size(im)  # image size
+#         shape = (shape[1], shape[0])  # hw
+#         assert (shape[0] > 9) & (shape[1] > 9), f"image size {shape} <10 pixels"
+#         assert im.format.lower() in IMG_FORMATS, f"invalid image format {im.format}"
+#         if im.format.lower() in ("jpg", "jpeg", "png"):
+#             with open(im_file, "rb") as f:
+#                 f.seek(-2, 2)
+#                 if f.read() != b"\xff\xd9":  # corrupt JPEG
+#                     ImageOps.exif_transpose(Image.open(im_file)).save(im_file, "JPEG", subsampling=0, quality=100)
+#                     msg = f"{prefix}WARNING ⚠️ {im_file}: corrupt JPEG restored and saved"
+#
+#         # verify labels
+#         if os.path.isfile(lb_file):
+#             nf = 1  # labels found
+#             with open(lb_file) as f:
+#                 lb = [x.split() for x in f.read().strip().splitlines() if len(x)]
+#             nl = len(lb)
+#
+#         return im_file, lb, shape, nm, nf, ne, nc, msg
+#
+#     except Exception as e:
+#         nc = 1
+#         msg = f"{prefix}WARNING ⚠️ {im_file}: ignoring corrupt image/label: {e}"
+#         return [None, None, None, nm, nf, ne, nc, msg]
 
 
 def find_file(root: str, fmt: str = 'png', recursive: bool = False) -> List[Path]:
@@ -181,3 +181,50 @@ def nested_dict_to_list(d):
         else:
             result.append((key, value))
     return result
+
+
+def traverse_directory(directory_path):
+    """
+    A function to traverse a directory and return the names of all files and subdirectories.
+
+    Args:
+        directory_path (Path): The path to the directory to traverse.
+
+    Returns:
+        A tuple containing two lists: (files_list, directories_list)
+    """
+    files_list = []
+    directories_list = []
+    for item in directory_path.iterdir():
+        if item.is_file():
+            files_list.append(item)
+        elif item.is_dir():
+            directories_list.append(item)
+    return files_list, directories_list
+
+
+def verify_image_label(args):
+    im_file, im_file_info, prefix = args
+    nf, msg = 0, ""
+    try:
+        # verify images
+        im = Image.open(im_file)
+        im.verify()  # PIL verifly
+        shape = exif_size(im)  # image size
+        shape = (shape[1], shape[0])  # hw
+        assert (shape[0] > 9) & (shape[1] > 9), f'image size {shape} <10 pixels'
+        assert im.format.lower() in IMG_FORMATS, f'invalid image format {im.format}'
+        if im.format.lower() in ('jpg', 'jpeg'):
+            with open(im_file, 'rb') as f:
+                f.seek(-2, 2)
+                if f.read() != b'\xff\xd9':  # corrupt JPEG
+                    ImageOps.exif_transpose(Image.open(im_file)).save(im_file, 'JPEG', subsampling=0, quality=100)
+                    msg = f'{prefix}WARNING ⚠️ {im_file}: corrupt JPEG restored and saved'
+
+        # verify labels
+        nf = 1
+        user, finger, enrl_verf, condition = im_file_info.tolist()
+        return im_file, shape, user, finger, enrl_verf, condition, nf, msg
+    except Exception as e:
+        msg = f'{prefix}WARNING ⚠️ {im_file}: ignoring corrupt image/label: {e}'
+        return None, None, None, None, None, None, nf, msg
